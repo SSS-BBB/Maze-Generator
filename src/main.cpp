@@ -3,9 +3,12 @@
 
 int main()
 {
-	sf::RenderWindow window(sf::VideoMode({ 200, 200 }), "SFML works!");
+	const int WINDOW_WIDTH = 1280;
+	const int WINDOW_HEIGHT = 720;
 
-	draw(window);
+	sf::RenderWindow window(sf::VideoMode({ WINDOW_WIDTH, WINDOW_HEIGHT }), "Maze Generator");
+
+	drawMazeGeneratorWindow(window);
 
 	return 0;
 }
