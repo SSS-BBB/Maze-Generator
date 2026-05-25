@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <functional>
 
 struct TextInput
 {
@@ -116,7 +117,36 @@ void checkTextInputClicked(std::vector<TextInput>& textInputList, const sf::Vect
 	}
 }
 
-void checkButtonClicked(std::vector<Button>& buttonList, const sf::Vector2f& mousePosition)
+void onGenerateButtonClicked(const std::vector<TextInput>& textInputList)
+{
+	sf::Vector2i mazeSize = { 0, 0 };
+	int generationSpeed = 0;
+
+	for (TextInput textInput : textInputList)
+	{
+		if (textInput.textInputName == "Width")
+		{
+			mazeSize.x = std::stoi(textInput.inputString);
+		}
+
+		else if (textInput.textInputName == "Height")
+		{
+			mazeSize.y = std::stoi(textInput.inputString);
+		}
+
+		else if (textInput.textInputName == "Speed")
+		{
+			generationSpeed = std::stoi(textInput.inputString);
+		}
+	}
+
+	std::cout << "Maze Width: " << mazeSize.x << std::endl;
+	std::cout << "Maze Height: " << mazeSize.y << std::endl;
+	std::cout << "Generation Speed: " << generationSpeed << std::endl;
+
+}
+
+void checkButtonClicked(std::vector<Button>& buttonList, const std::vector<TextInput>& textInputList, const sf::Vector2f& mousePosition)
 {
 	float x = mousePosition.x;
 	float y = mousePosition.y;
@@ -133,6 +163,12 @@ void checkButtonClicked(std::vector<Button>& buttonList, const sf::Vector2f& mou
 		{
 			button.isClicked = true;
 			std::cout << button.buttonName + " button is clicked!" << std::endl;
+
+			if (button.buttonName == "Generate")
+			{
+				onGenerateButtonClicked(textInputList);
+			}
+
 			break;
 
 		}
@@ -232,7 +268,7 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 				if (mousePressed->button == sf::Mouse::Button::Left)
 				{
 					checkTextInputClicked(textInputList, mousePosition);
-					checkButtonClicked(buttonList, mousePosition);
+					checkButtonClicked(buttonList, textInputList, mousePosition);
 				}
 			}
 
