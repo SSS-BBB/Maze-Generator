@@ -1,27 +1,43 @@
 #include "render.hpp"
 #include <string>
 #include <vector>
+#include <iostream>
 
 struct TextInput
 {
-	std::string inputString = "Input Here";
+	std::string textInputName = "";
+	std::string inputString = "";
+	std::string filterText = "0123456789"; // only filter text allowed to input
 	bool isListening = false;
+	bool showCursor = false; // show | after the last character to let the user know what text input is being focused
+	sf::Clock cursorClock;
 	sf::Vector2f position = { 0.0f, 0.0f };
 	sf::Vector2f size = { 150.0f, 40.0f };
 };
 
 struct Button
 {
-	std::string buttonString = "Button";
+	std::string buttonName = "Button";
 	bool isClicked = false;
 	sf::Vector2f position = { 0.0f, 0.0f };
 	sf::Vector2f size = { 120.0f, 60.0f };
-	sf::Color buttonColor = sf::Color::Blue;
-	sf::Color textColor = sf::Color::White;
+	sf::Color buttonColor = sf::Color(190, 190, 190);
+	sf::Color textColor = sf::Color::Black;
 };
 
-void drawTextInputText(sf::RenderWindow& window, TextInput& textInput)
+void drawTextInput(sf::RenderWindow& window, TextInput& textInput)
 {
+	if (textInput.isListening)
+	{
+		// show blinking cursor
+		if (textInput.cursorClock.getElapsedTime().asSeconds() >= 0.5f)
+		{
+			textInput.showCursor = !textInput.showCursor;
+			textInput.cursorClock.restart();
+		}
+	}
+
+	// draw text
 	sf::Font font("fonts/Roboto-Regular.ttf");
 	sf::Text text(font);
 	text.setString(textInput.inputString);
@@ -29,10 +45,18 @@ void drawTextInputText(sf::RenderWindow& window, TextInput& textInput)
 	text.setPosition({ textInput.position.x + 5.0f, textInput.position.y + 5.0f });
 	text.setCharacterSize(20.0f);
 	window.draw(text);
-}
 
-void drawTextInputBorder(sf::RenderWindow& window, TextInput& textInput)
-{
+	if (textInput.showCursor)
+	{
+		// draw cursor
+		sf::RectangleShape cursorRect({ 2.0f, (float) text.getCharacterSize() });
+		cursorRect.setPosition({ text.getPosition().x + text.getGlobalBounds().size.x + 3.0f,
+							     text.getPosition().y + 3.0f });
+		cursorRect.setFillColor(sf::Color::Black);
+		window.draw(cursorRect);
+	}
+
+	// draw border
 	sf::RectangleShape border(textInput.size);
 	border.setFillColor(sf::Color::Transparent);
 	border.setOutlineColor(sf::Color::Black);
@@ -41,28 +65,113 @@ void drawTextInputBorder(sf::RenderWindow& window, TextInput& textInput)
 	window.draw(border);
 }
 
-// draw rect first then text
-void drawButtonText(sf::RenderWindow& window, Button& button)
+void drawButton(sf::RenderWindow& window, const Button& button)
 {
-	sf::Font font("fonts/Roboto-Regular.ttf");
-	sf::Text text(font);
-	text.setString(button.buttonString);
-	text.setFillColor(button.textColor);
-	text.setPosition({ button.position.x + 15.0f, button.position.y + 15.0f });
-	text.setCharacterSize(20.0f);
-	window.draw(text);
-}
-
-void drawButtonRect(sf::RenderWindow& window, Button& button)
-{
-	// 
-
+	// button rect
 	sf::RectangleShape rect(button.size);
 	rect.setFillColor(button.buttonColor);
 	rect.setOutlineColor(sf::Color::Black);
 	rect.setOutlineThickness(2.0f);
 	rect.setPosition(button.position);
 	window.draw(rect);
+
+	// button text
+	sf::Font font("fonts/Roboto-Regular.ttf");
+	sf::Text text(font);
+	text.setString(button.buttonName);
+	text.setFillColor(button.textColor);
+	text.setPosition({ button.position.x + 15.0f, button.position.y + 15.0f });
+	text.setCharacterSize(20.0f);
+	window.draw(text);
+}
+
+void checkTextInputClicked(std::vector<TextInput>& textInputList, const sf::Vector2f& mousePosition)
+{
+	float x = mousePosition.x;
+	float y = mousePosition.y;
+
+	for (TextInput& textInput : textInputList)
+	{
+		float x0 = textInput.position.x;
+		float y0 = textInput.position.y;
+		float x1 = textInput.position.x + textInput.size.x;
+		float y1 = textInput.position.y + textInput.size.y;
+
+		// x0 <= x <= x1 && y0 <= y <= y1
+		if (x >= x0 && x <= x1 && y >= y0 && y <= y1)
+		{
+			textInput.isListening = true;
+			textInput.showCursor = true;
+			textInput.cursorClock.restart();
+		
+		}
+		else
+		{
+			textInput.isListening = false;
+
+			// stop blinking cursor
+			textInput.showCursor = false;
+			textInput.cursorClock.reset();
+		}
+	}
+}
+
+void checkButtonClicked(std::vector<Button>& buttonList, const sf::Vector2f& mousePosition)
+{
+	float x = mousePosition.x;
+	float y = mousePosition.y;
+
+	for (Button& button : buttonList)
+	{
+		float x0 = button.position.x;
+		float y0 = button.position.y;
+		float x1 = button.position.x + button.size.x;
+		float y1 = button.position.y + button.size.y;
+
+		// x0 <= x <= x1 && y0 <= y <= y1
+		if (x >= x0 && x <= x1 && y >= y0 && y <= y1)
+		{
+			button.isClicked = true;
+			std::cout << button.buttonName + " button is clicked!" << std::endl;
+			break;
+
+		}
+		else
+		{
+			button.isClicked = false;
+		}
+	}
+}
+
+bool isCharInString(char target, std::string str)
+{
+	for (char c : str)
+	{
+		if (c == target)
+			return true;
+	}
+
+	return false;
+}
+
+void onTextEntered(char enteredChar, std::vector<TextInput>& textInputList)
+{
+	for (TextInput& textInput : textInputList)
+	{
+		if (textInput.isListening)
+		{
+			if (isCharInString(enteredChar, textInput.filterText))
+			{
+				textInput.inputString += enteredChar;
+			}
+			if (enteredChar == '\b')
+			{
+				// back space is preesed, remove last character
+				if (!textInput.inputString.empty())
+					textInput.inputString.pop_back();
+			}
+		}
+	}
 }
 
 void drawMazeGeneratorWindow(sf::RenderWindow& window)
@@ -70,12 +179,72 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 	std::vector<TextInput> textInputList;
 	std::vector<Button> buttonList;
 
+	// text input and button struct
+	TextInput widthTextInput;
+	widthTextInput.textInputName = "Width";
+	widthTextInput.position = { 750.0f, 215.0f };
+	textInputList.emplace_back(widthTextInput);
+
+	TextInput heightTextInput;
+	heightTextInput.textInputName = "Height";
+	heightTextInput.position = { 750.0f + 300.0f, 215.0f };
+	textInputList.emplace_back(heightTextInput);
+
+	TextInput speedTextInput;
+	speedTextInput.textInputName = "Speed";
+	speedTextInput.position = { 900.0f, 215.0f + 100.0f };
+	textInputList.emplace_back(speedTextInput);
+
+	Button generateButton;
+	generateButton.buttonName = "Generate";
+	generateButton.position = { 920.0f, 315.0f + 100.0f };
+	buttonList.emplace_back(generateButton);
+
+	Button saveButton;
+	saveButton.buttonName = "Save";
+	saveButton.position = { 155.0f, 590.0f };
+	buttonList.emplace_back(saveButton);
+
+	Button loadButton;
+	loadButton.buttonName = "Load";
+	loadButton.position = { 155.0f + 200.0f, 590.0f };
+	buttonList.emplace_back(loadButton);
+
+	Button pathFindingButton;
+	pathFindingButton.buttonName = "Path Finding";
+	pathFindingButton.position = { 920.0f - 10.0f, 415.0f + 100.0f };
+	pathFindingButton.size = { 140.0f, 60.0f };
+	buttonList.emplace_back(pathFindingButton);
+
 	while (window.isOpen())
 	{
+		sf::Vector2f mousePosition = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+
 		while (const std::optional event = window.pollEvent())
 		{
 			if (event->is<sf::Event::Closed>())
 				window.close();
+
+			// mouse clicked
+			if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>())
+			{
+				// left mouse button clicked
+				if (mousePressed->button == sf::Mouse::Button::Left)
+				{
+					checkTextInputClicked(textInputList, mousePosition);
+					checkButtonClicked(buttonList, mousePosition);
+				}
+			}
+
+			// user typing
+			if (const auto* textEntered = event->getIf<sf::Event::TextEntered>())
+			{
+				if (textEntered->unicode < 128)
+				{
+					char enterdChar = static_cast<char>(textEntered->unicode);
+					onTextEntered(enterdChar, textInputList);
+				}
+			}
 		}
 
 		window.clear(sf::Color::White);
@@ -83,7 +252,6 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 		// render window
 
 		sf::Font font("fonts/Roboto-Regular.ttf");
-		sf::Vector2f mousePosition = window.mapPixelToCoords(sf::Mouse::getPosition(window));
 
 		// Mouse Position Text
 		sf::Text mousePosText(font);
@@ -118,10 +286,7 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 		window.draw(widthText);
 
 		// Width Text Input
-		TextInput widthTextInput;
-		widthTextInput.position = { 750.0f, 215.0f };
-		drawTextInputText(window, widthTextInput);
-		drawTextInputBorder(window, widthTextInput);
+		// drawTextInput(window, widthTextInput);
 
 		// Height Text
 		sf::Text heightText(font);
@@ -132,10 +297,7 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 		window.draw(heightText);
 
 		// Height Text Input
-		TextInput heightTextInput;
-		heightTextInput.position = { 750.0f + 300.0f, 215.0f };
-		drawTextInputText(window, heightTextInput);
-		drawTextInputBorder(window, heightTextInput);
+		// drawTextInput(window, heightTextInput);
 
 		// Speed Text
 		sf::Text speedText(font);
@@ -146,38 +308,33 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 		window.draw(speedText);
 
 		// Speed Text Input
-		TextInput speedTextInput;
-		speedTextInput.position = { 900.0f, 215.0f + 100.0f };
-		drawTextInputText(window, speedTextInput);
-		drawTextInputBorder(window, speedTextInput);
+		// drawTextInput(window, speedTextInput);
 
 		// Generate Button
-		Button generateButton;
-		generateButton.buttonString = "Generate";
-		generateButton.position = { 920.0f, 315.0f + 100.0f };
-		drawButtonRect(window, generateButton);
-		drawButtonText(window, generateButton);
+		// drawButton(window, generateButton);
 
 		// Save Button
-		Button saveButton;
-		saveButton.buttonString = "Save";
-		saveButton.position = { 155.0f, 590.0f };
-		drawButtonRect(window, saveButton);
-		drawButtonText(window, saveButton);
+		// drawButton(window, saveButton);
 
 		// Load Button
-		Button loadButton;
-		loadButton.buttonString = "Load";
-		loadButton.position = { 155.0f + 200.0f, 590.0f };
-		drawButtonRect(window, loadButton);
-		drawButtonText(window, loadButton);
+		// drawButton(window, loadButton);
 
-		// Generate Button
-		Button pathFindingButton;
-		pathFindingButton.buttonString = "Path Finding";
-		pathFindingButton.position = { 920.0f, 415.0f + 100.0f };
-		drawButtonRect(window, pathFindingButton);
-		drawButtonText(window, pathFindingButton);
+		// Path Finding Button
+		// drawButton(window, pathFindingButton);
+
+		
+		// draw text inputs
+		for (TextInput& textInput : textInputList)
+		{
+			drawTextInput(window, textInput);
+		}
+
+		// draw buttons
+		for (Button& button : buttonList)
+		{
+			drawButton(window, button);
+		}
+		
 
 		window.display();
 	}
