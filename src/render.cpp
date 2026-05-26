@@ -1,8 +1,9 @@
-#include "render.hpp"
 #include <string>
 #include <vector>
 #include <iostream>
 #include <functional>
+#include "render.hpp"
+#include "maze.hpp"
 
 struct TextInput
 {
@@ -25,6 +26,8 @@ struct Button
 	sf::Color buttonColor = sf::Color(190, 190, 190);
 	sf::Color textColor = sf::Color::Black;
 };
+
+Maze mazeObj;
 
 void drawTextInput(sf::RenderWindow& window, TextInput& textInput)
 {
@@ -124,19 +127,45 @@ void onGenerateButtonClicked(const std::vector<TextInput>& textInputList)
 
 	for (TextInput textInput : textInputList)
 	{
+
 		if (textInput.textInputName == "Width")
 		{
-			mazeSize.x = std::stoi(textInput.inputString);
+			if (textInput.inputString.empty())
+			{
+				std::cout << "Width input is empty, will use default value." << std::endl;
+				mazeSize.x = 6;
+			}
+
+			else
+			{
+				mazeSize.x = std::stoi(textInput.inputString);
+			}
 		}
 
 		else if (textInput.textInputName == "Height")
 		{
-			mazeSize.y = std::stoi(textInput.inputString);
+			if (textInput.inputString.empty())
+			{
+				std::cout << "Height input is empty, will use default value." << std::endl;
+				mazeSize.y = 5;
+			}
+
+			else
+			{
+				mazeSize.y = std::stoi(textInput.inputString);
+			}
 		}
 
 		else if (textInput.textInputName == "Speed")
 		{
-			generationSpeed = std::stoi(textInput.inputString);
+			if (textInput.inputString.empty())
+			{
+				generationSpeed = 0;
+			}
+			else
+			{
+				generationSpeed = std::stoi(textInput.inputString);
+			}
 		}
 	}
 
@@ -144,6 +173,10 @@ void onGenerateButtonClicked(const std::vector<TextInput>& textInputList)
 	std::cout << "Maze Height: " << mazeSize.y << std::endl;
 	std::cout << "Generation Speed: " << generationSpeed << std::endl;
 
+	mazeObj.maze_width = mazeSize.x;
+	mazeObj.maze_height = mazeSize.y;
+	initMaze(mazeObj);
+	generateMaze(mazeObj);
 }
 
 void checkButtonClicked(std::vector<Button>& buttonList, const std::vector<TextInput>& textInputList, const sf::Vector2f& mousePosition)
@@ -208,6 +241,65 @@ void onTextEntered(char enteredChar, std::vector<TextInput>& textInputList)
 			}
 		}
 	}
+}
+
+void drawMaze(sf::RenderWindow& window, sf::Vector2f mazeRenderSize, sf::Vector2f topLeftPos)
+{
+	/*
+	// Maze Frame
+	sf::RectangleShape mazeFrame(mazeRenderSize);
+	mazeFrame.setFillColor(sf::Color::Black);
+	mazeFrame.setPosition(topLeftPos);
+	window.draw(mazeFrame);
+	*/
+
+	int m = mazeObj.maze_width;
+	int n = mazeObj.maze_height;
+
+	if (m <= 0 || n <= 0)
+	{
+		std::cerr << "Maze Width or Height is less than or equals to 0, unable to draw a maze." << std::endl;
+		return;
+	}
+
+	float x0 = topLeftPos.x;
+	float y0 = topLeftPos.y;
+	float r1 = mazeRenderSize.x / m; // horizontal wall length
+	float r2 = mazeRenderSize.y / n; // vertical wall length
+	const float WALL_THICKNESS = 3.0f;
+
+	// draw vertical walls
+	for (int i = 0; i < mazeObj.vertical_walls.size(); i++)
+	{
+		for (int j = 0; j < mazeObj.vertical_walls[i].size(); j++)
+		{
+			if (!mazeObj.vertical_walls[i][j])
+				continue;
+
+			sf::Vector2f wallPos = { x0 + r1*j, y0 + r2*i };
+			sf::RectangleShape wallRect({ WALL_THICKNESS, r2 });
+			wallRect.setFillColor(sf::Color::Black);
+			wallRect.setPosition(wallPos);
+			window.draw(wallRect);
+		}
+	}
+
+	// draw horizontal walls
+	for (int i = 0; i < mazeObj.horizontal_walls.size(); i++)
+	{
+		for (int j = 0; j < mazeObj.horizontal_walls[i].size(); j++)
+		{
+			if (!mazeObj.horizontal_walls[i][j])
+				continue;
+
+			sf::Vector2f wallPos = { x0 + r1 * j, y0 + r2 * i };
+			sf::RectangleShape wallRect({ r1, WALL_THICKNESS });
+			wallRect.setFillColor(sf::Color::Black);
+			wallRect.setPosition(wallPos);
+			window.draw(wallRect);
+		}
+	}
+
 }
 
 void drawMazeGeneratorWindow(sf::RenderWindow& window)
@@ -307,11 +399,7 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 		titleText.setPosition({ 256.0, 20.0 });
 		window.draw(titleText);
 
-		// Maze Frame
-		sf::RectangleShape mazeFrame({ 650.0, 500.0 });
-		mazeFrame.setFillColor(sf::Color::Black);
-		mazeFrame.setPosition( { 40.0, 80.0 });
-		window.draw(mazeFrame);
+		drawMaze(window, { 650.0f, 500.0f }, { 40.0f, 80.0f });
 
 		// Width Text
 		sf::Text widthText(font);
