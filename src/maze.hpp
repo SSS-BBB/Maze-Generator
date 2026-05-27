@@ -19,4 +19,5 @@ struct Maze
 
 void initMaze(Maze& mazeObj);
 
+void setMaze(Maze& mazeObj);
 void generateMaze(Maze& mazeObj);

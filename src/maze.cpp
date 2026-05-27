@@ -1,5 +1,13 @@
 #include "maze.hpp"
 #include <iostream>
+#include <stack>
+#include <chrono>
+
+struct CellPos
+{
+	int x = 0;
+	int y = 0;
+};
 
 void initMaze(Maze& mazeObj)
 {
@@ -32,7 +40,7 @@ void initMaze(Maze& mazeObj)
 		row.reserve(m);
 		for (int j = 0; j < m; j++)
 		{
-			row.push_back(false);
+			row.push_back(true);
 		}
 		mazeObj.horizontal_walls.push_back(row);
 	}
@@ -45,7 +53,7 @@ void initMaze(Maze& mazeObj)
 		row.reserve(m + 1);
 		for (int j = 0; j < m + 1; j++)
 		{
-			row.push_back(false);
+			row.push_back(true);
 		}
 		mazeObj.vertical_walls.push_back(row);
 	}
@@ -54,19 +62,18 @@ void initMaze(Maze& mazeObj)
 
 }
 
-void generateMaze(Maze& mazeObj)
+void setMaze(Maze& mazeObj)
 {
+	// set maze to test
+
 	int m = mazeObj.maze_width;
 	int n = mazeObj.maze_height;
 
 	if (m <= 0 || n <= 0)
 	{
-		std::cerr << "Maze Width or Height is less than or equals to 0, unable to initializae maze." << std::endl;
+		std::cerr << "Maze Width or Height is less than or equals to 0, unable to set maze." << std::endl;
 		return;
 	}
-
-	// generate maze randomly
-
 	// vertical walls test
 	// 5 x 6
 	// (0, 0) -> (4, 4)
@@ -117,4 +124,248 @@ void generateMaze(Maze& mazeObj)
 
 
 	std::cout << "Maze Generated successfully" << std::endl;
+}
+
+bool validCell(const Maze& mazeObj, CellPos pos)
+{
+	int m = mazeObj.maze_width;
+	int n = mazeObj.maze_height;
+
+	return !(pos.x < 0 || pos.x >= m || pos.y < 0 || pos.y >= n);
+}
+
+bool getLeftWall(const Maze& mazeObj, CellPos pos)
+{
+
+	if (!validCell(mazeObj, pos))
+	{
+		std::cerr << "Invalid cell position, unable to getLeftWall." << std::endl;
+		return false;
+	}
+
+	return mazeObj.vertical_walls[pos.y][pos.x];
+}
+
+bool getRightWall(const Maze& mazeObj, CellPos pos)
+{
+
+	if (!validCell(mazeObj, pos))
+	{
+		std::cerr << "Invalid cell position, unable to getRightWall." << std::endl;
+		return false;
+	}
+
+	return mazeObj.vertical_walls[pos.y][pos.x + 1];
+}
+
+bool getTopWall(const Maze& mazeObj, CellPos pos)
+{
+
+	if (!validCell(mazeObj, pos))
+	{
+		std::cerr << "Invalid cell position, unable to getTopWall." << std::endl;
+		return false;
+	}
+
+	return mazeObj.horizontal_walls[pos.y][pos.x];
+}
+
+bool getBottomWall(const Maze& mazeObj, CellPos pos)
+{
+	if (!validCell(mazeObj, pos))
+	{
+		std::cerr << "Invalid cell position, unable to getBottomWall." << std::endl;
+		return false;
+	}
+
+	return mazeObj.horizontal_walls[pos.y + 1][pos.x];
+}
+
+void setLeftWall(Maze& mazeObj, CellPos pos, bool wallExists)
+{
+	if (!validCell(mazeObj, pos))
+	{
+		std::cerr << "Invalid cell position, unable to setLeftWall." << std::endl;
+		return;
+	}
+
+	mazeObj.vertical_walls[pos.y][pos.x] = wallExists;
+}
+
+void setRightWall(Maze& mazeObj, CellPos pos, bool wallExists)
+{
+	if (!validCell(mazeObj, pos))
+	{
+		std::cerr << "Invalid cell position, unable to setRightWall." << std::endl;
+		return;
+	}
+
+	mazeObj.vertical_walls[pos.y][pos.x + 1] = wallExists;
+}
+
+void setTopWall(Maze& mazeObj, CellPos pos, bool wallExists)
+{
+	if (!validCell(mazeObj, pos))
+	{
+		std::cerr << "Invalid cell position, unable to getTopWall." << std::endl;
+		return;
+	}
+
+	mazeObj.horizontal_walls[pos.y][pos.x] = wallExists;
+}
+
+void setBottomWall(Maze& mazeObj, CellPos pos, bool wallExists)
+{
+	if (!validCell(mazeObj, pos))
+	{
+		std::cerr << "Invalid cell position, unable to getBottomWall." << std::endl;
+		return;
+	}
+
+	mazeObj.horizontal_walls[pos.y + 1][pos.x] = wallExists;
+}
+
+bool isCellUnVisited(const Maze& mazeObj, const std::vector<std::vector<bool>>& cellsVisited, CellPos cell)
+{
+	if (!validCell(mazeObj, cell))
+		return false;
+
+	return !cellsVisited[cell.y][cell.x];
+}
+
+CellPos getUnvisitedNeighbour(const Maze& mazeObj, const std::vector<std::vector<bool>>& cellsVisited, CellPos cell)
+{
+	CellPos leftCell;
+	leftCell.x = cell.x - 1;
+	leftCell.y = cell.y;
+
+	CellPos rightCell;
+	rightCell.x = cell.x + 1;
+	rightCell.y = cell.y;
+
+	CellPos topCell;
+	topCell.x = cell.x;
+	topCell.y = cell.y - 1;
+
+	CellPos bottomCell;
+	bottomCell.x = cell.x;
+	bottomCell.y = cell.y + 1;
+
+	std::vector<CellPos> unVisitedCells;
+	unVisitedCells.reserve(4);
+	if (isCellUnVisited(mazeObj, cellsVisited, leftCell))
+	{
+		unVisitedCells.push_back(leftCell);
+	}
+
+	if (isCellUnVisited(mazeObj, cellsVisited, rightCell))
+	{
+		unVisitedCells.push_back(rightCell);
+	}
+
+	if (isCellUnVisited(mazeObj, cellsVisited, topCell))
+	{
+		unVisitedCells.push_back(topCell);
+	}
+
+	if (isCellUnVisited(mazeObj, cellsVisited, bottomCell))
+	{
+		unVisitedCells.push_back(bottomCell);
+	}
+
+	// no unvisited neighbor
+	if (unVisitedCells.empty())
+	{
+		CellPos nullCell;
+		nullCell.x = -1;
+		nullCell.y = -1;
+		return nullCell;
+	}
+
+	int selectedCellIndex = rand() % unVisitedCells.size();
+	return unVisitedCells[selectedCellIndex];
+}
+
+void generateMaze(Maze& mazeObj)
+{
+	// generate maze randomly
+	int m = mazeObj.maze_width;
+	int n = mazeObj.maze_height;
+
+	if (m <= 0 || n <= 0)
+	{
+		std::cerr << "Maze Width or Height is less than or equals to 0, unable to generate maze." << std::endl;
+		return;
+	}
+
+	std::vector<std::vector<bool>> cellsVisited;
+	cellsVisited.reserve(n);
+	for (int i = 0; i < n; i++)
+	{
+		std::vector<bool> row;
+		row.reserve(m);
+		for (int j = 0; j < m; j++)
+		{
+			row.push_back(false);
+		}
+		cellsVisited.push_back(row);
+	}
+
+	// Randomized depth-first search
+	auto startTime = std::chrono::high_resolution_clock::now();
+
+	std::stack<CellPos> cellsStack;
+	CellPos initCell;
+	initCell.x = rand() % m;
+	initCell.y = rand() % n;
+	cellsVisited[initCell.y][initCell.x] = true;
+	cellsStack.push(initCell);
+	while (!cellsStack.empty())
+	{
+		CellPos currentCell = cellsStack.top();
+		cellsStack.pop(); // pop function doesn't return a value for some reason
+
+		CellPos chosenCell = getUnvisitedNeighbour(mazeObj, cellsVisited, currentCell);
+		if (chosenCell.x < 0 || chosenCell.y < 0) // dead end
+			continue;
+
+		cellsStack.push(currentCell);
+
+		if (chosenCell.x == currentCell.x - 1)
+		{
+			// left cell -> remove left wall
+			setLeftWall(mazeObj, currentCell, false);
+		}
+
+		else if (chosenCell.x == currentCell.x + 1)
+		{
+			// right cell -> remove right wall
+			setRightWall(mazeObj, currentCell, false);
+		}
+
+		else if (chosenCell.y == currentCell.y - 1)
+		{
+			// top cell -> remove top wall
+			setTopWall(mazeObj, currentCell, false);
+		}
+
+		else if (chosenCell.y == currentCell.y + 1)
+		{
+			// bottom cell -> remove bottom wall
+			setBottomWall(mazeObj, currentCell, false);
+		}
+
+		else
+		{
+			std::cerr << "The chosen cell is not the neighbor of the current cell." << std::endl;
+		}
+
+		cellsVisited[chosenCell.y][chosenCell.x] = true;
+		cellsStack.push(chosenCell);
+	}
+
+	// TODO: make this show in the window
+	auto endTime = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::milli> elapsed = endTime - startTime;
+	std::cout << "Maze Generated in " << elapsed.count() << " ms" << std::endl;
 }
