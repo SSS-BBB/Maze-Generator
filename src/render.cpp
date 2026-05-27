@@ -27,6 +27,10 @@ struct Button
 	sf::Color textColor = sf::Color::Black;
 };
 
+const std::string FONT_PATH = "fonts/Roboto-Regular.ttf";
+const std::string FONT_LOAD_ERROR = "Unable to open font from " + FONT_PATH 
+								+ "Please make sure there is a fonts folder containing Roboto-Regular.ttf in the same directory as CMakeList.txt, and configure CMake";
+
 Maze mazeObj;
 
 void drawTextInput(sf::RenderWindow& window, TextInput& textInput)
@@ -42,7 +46,12 @@ void drawTextInput(sf::RenderWindow& window, TextInput& textInput)
 	}
 
 	// draw text
-	sf::Font font("fonts/Roboto-Regular.ttf");
+	sf::Font font;
+	if (!font.openFromFile(FONT_PATH))
+	{
+		std::cerr << FONT_LOAD_ERROR << std::endl;
+		return;
+	}
 	sf::Text text(font);
 	text.setString(textInput.inputString);
 	text.setFillColor(sf::Color::Black);
@@ -80,7 +89,12 @@ void drawButton(sf::RenderWindow& window, const Button& button)
 	window.draw(rect);
 
 	// button text
-	sf::Font font("fonts/Roboto-Regular.ttf");
+	sf::Font font;
+	if (!font.openFromFile(FONT_PATH))
+	{
+		std::cerr << FONT_LOAD_ERROR << std::endl;
+		return;
+	}
 	sf::Text text(font);
 	text.setString(button.buttonName);
 	text.setFillColor(button.textColor);
@@ -307,6 +321,14 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 	std::vector<TextInput> textInputList;
 	std::vector<Button> buttonList;
 
+	sf::Font font;
+	if (!font.openFromFile(FONT_PATH))
+	{
+		std::cerr << FONT_LOAD_ERROR << std::endl;
+		return;
+	}
+
+
 	// text input and button struct
 	TextInput widthTextInput;
 	widthTextInput.textInputName = "Width";
@@ -378,8 +400,6 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 		window.clear(sf::Color::White);
 
 		// render window
-
-		sf::Font font("fonts/Roboto-Regular.ttf");
 
 		// Mouse Position Text
 		sf::Text mousePosText(font);
