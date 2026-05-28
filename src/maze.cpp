@@ -421,6 +421,7 @@ void startGeneration(MazeGenerator& mazeGenerator, Maze& mazeObj)
 	mazeGenerator.deadEndPos.reserve(n * m);
 
 	mazeGenerator.startTime = std::chrono::high_resolution_clock::now();
+	mazeGenerator.lastUpdateTime = std::chrono::high_resolution_clock::now();
 
 	CellPos initCell;
 	initCell.x = rand() % m;
@@ -435,6 +436,13 @@ void updateGeneration(MazeGenerator& mazeGenerator, Maze& mazeObj)
 	if (mazeGenerator.mazeStatus.statusType != PROCESSING)
 		return;
 
+	// delay generation to see the process clearer
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::milli> elapsed = currentTime - mazeGenerator.lastUpdateTime;
+	if (elapsed.count() < mazeGenerator.delay)
+		return;
+
+	mazeGenerator.lastUpdateTime = std::chrono::high_resolution_clock::now();
 	if (mazeGenerator.cellStack.empty())
 	{
 		// finished generating

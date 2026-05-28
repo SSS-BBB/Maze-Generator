@@ -43,6 +43,8 @@ struct MazeGenerator
 	std::vector<std::vector<bool>> cellVisited;
 	std::stack<CellPos> cellStack;
 	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
+	std::chrono::time_point<std::chrono::high_resolution_clock> lastUpdateTime;
+	double delay = 100.0f; // ms
 
 	// visualization
 	std::vector<CellPos> visitedPos;

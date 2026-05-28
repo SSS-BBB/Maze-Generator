@@ -128,7 +128,7 @@ void onGenerateButtonClicked(std::vector<TextInput>& textInputList)
 		return;
 
 	sf::Vector2i mazeSize = { 0, 0 };
-	int generationSpeed = 0;
+	int generationDelay = 0;
 
 	for (TextInput& textInput : textInputList)
 	{
@@ -161,33 +161,34 @@ void onGenerateButtonClicked(std::vector<TextInput>& textInputList)
 			}
 		}
 
-		else if (textInput.textInputName == "Speed")
+		else if (textInput.textInputName == "Delay")
 		{
 			if (textInput.inputString.empty())
 			{
-				generationSpeed = 0;
+				generationDelay = 0;
 			}
 			else
 			{
-				generationSpeed = std::stoi(textInput.inputString);
+				generationDelay = std::stoi(textInput.inputString);
 			}
 		}
 	}
 
 	std::cout << "Maze Width: " << mazeSize.x << std::endl;
 	std::cout << "Maze Height: " << mazeSize.y << std::endl;
-	std::cout << "Generation Speed: " << generationSpeed << std::endl;
+	std::cout << "Generation Delay: " << generationDelay << std::endl;
 
 	mazeObj.maze_width = mazeSize.x;
 	mazeObj.maze_height = mazeSize.y;
 	initMaze(mazeObj);
 
-	if (generationSpeed <= 0)
+	if (generationDelay <= 0)
 	{
 		mazeGenerator.mazeStatus = generateMazeInstantly(mazeObj);
 	}
 	else
 	{
+		mazeGenerator.delay = generationDelay;
 		startGeneration(mazeGenerator, mazeObj);
 	}
 }
@@ -426,10 +427,10 @@ void initMazeGeneratorWindow(std::vector<TextInput>& textInputList, std::vector<
 	heightTextInput.position = { 750.0f + 300.0f, 215.0f };
 	textInputList.emplace_back(heightTextInput);
 
-	TextInput speedTextInput;
-	speedTextInput.textInputName = "Speed";
-	speedTextInput.position = { 900.0f, 215.0f + 100.0f };
-	textInputList.emplace_back(speedTextInput);
+	TextInput delayTextInput;
+	delayTextInput.textInputName = "Delay";
+	delayTextInput.position = { 900.0f, 215.0f + 100.0f };
+	textInputList.emplace_back(delayTextInput);
 
 	Button generateButton;
 	generateButton.buttonName = "Generate";
@@ -498,13 +499,13 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window, std::vector<TextInput>& t
 	heightText.setPosition({ 792.0f + 300.0f, 180.0f });
 	window.draw(heightText);
 
-	// Speed Text
-	sf::Text speedText(font);
-	speedText.setString("Speed");
-	speedText.setCharacterSize(22);
-	speedText.setFillColor(sf::Color::Black);
-	speedText.setPosition({ 942.0f, 180.0f + 100.0f });
-	window.draw(speedText);
+	// Delay Text
+	sf::Text delayText(font);
+	delayText.setString("Delay");
+	delayText.setCharacterSize(22);
+	delayText.setFillColor(sf::Color::Black);
+	delayText.setPosition({ 942.0f, 180.0f + 100.0f });
+	window.draw(delayText);
 
 	// Maze Generation Status Text
 	sf::Text genStatText(font);
@@ -532,10 +533,10 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window, std::vector<TextInput>& t
 	}
 
 	genStatText.setFillColor(genStatColor);
-	float speedTextWidth = speedText.getGlobalBounds().size.x;
+	float delayTextWidth = delayText.getGlobalBounds().size.x;
 	float genTextWidth = genStatText.getGlobalBounds().size.x;
-	float speedTextXPos = speedText.getPosition().x;
-	float genTextXPos = (2*speedTextXPos + speedTextWidth - genTextWidth) / 2.0f;
+	float delayTextXPos = delayText.getPosition().x;
+	float genTextXPos = (2* delayTextXPos + delayTextWidth - genTextWidth) / 2.0f;
 	genStatText.setPosition({ genTextXPos, 500.0f });
 	window.draw(genStatText);
 
