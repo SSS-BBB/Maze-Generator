@@ -1,6 +1,14 @@
 #pragma once
 #include <vector>
+#include <stack>
 #include <string>
+#include <chrono>
+
+struct CellPos
+{
+	int x = 0;
+	int y = 0;
+};
 
 struct Maze
 {
@@ -20,7 +28,7 @@ struct Maze
 
 enum StatusType
 {
-	IDLE, ERROR, WARNING, PROCESSING, SUCCESSFUL
+	IDLE, ERROR, PROCESSING, SUCCESSFUL
 };
 
 struct MazeStatus
@@ -33,9 +41,15 @@ struct MazeGenerator
 {
 	MazeStatus mazeStatus;
 	std::vector<std::vector<bool>> cellVisited;
+	CellPos selectedNeighborCell;
+	std::stack<CellPos> cellStack;
+	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
 };
 
 void initMaze(Maze& mazeObj);
 
 MazeStatus setMaze(Maze& mazeObj);
-MazeStatus generateMaze(Maze& mazeObj);
+MazeStatus generateMazeInstantly(Maze& mazeObj);
+
+void startGeneration(MazeGenerator& mazeGenerator, Maze& mazeObj);
+void updateGeneration(MazeGenerator& mazeGenerator, Maze& mazeObj);

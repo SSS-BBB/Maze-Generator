@@ -33,7 +33,7 @@ const std::string FONT_LOAD_ERROR = "Unable to open font from " + FONT_PATH
 Maze mazeObj;
 MazeGenerator mazeGenerator;
 
-void drawTextInput(sf::RenderWindow& window, TextInput& textInput)
+void drawTextInput(sf::RenderWindow& window, TextInput& textInput, const sf::Font& font)
 {
 	if (textInput.isListening)
 	{
@@ -46,12 +46,6 @@ void drawTextInput(sf::RenderWindow& window, TextInput& textInput)
 	}
 
 	// draw text
-	sf::Font font;
-	if (!font.openFromFile(FONT_PATH))
-	{
-		std::cerr << FONT_LOAD_ERROR << std::endl;
-		return;
-	}
 	sf::Text text(font);
 	text.setString(textInput.inputString);
 	text.setFillColor(sf::Color::Black);
@@ -63,8 +57,8 @@ void drawTextInput(sf::RenderWindow& window, TextInput& textInput)
 	{
 		// draw cursor
 		sf::RectangleShape cursorRect({ 2.0f, (float) text.getCharacterSize() });
-		cursorRect.setPosition({ text.getPosition().x + text.getGlobalBounds().size.x + 3.0f,
-							     text.getPosition().y + 3.0f });
+		cursorRect.setPosition({ text.getPosition().x + text.getGlobalBounds().size.x + 2.5f,
+							     text.getPosition().y + 2.5f });
 		cursorRect.setFillColor(sf::Color::Black);
 		window.draw(cursorRect);
 	}
@@ -78,7 +72,7 @@ void drawTextInput(sf::RenderWindow& window, TextInput& textInput)
 	window.draw(border);
 }
 
-void drawButton(sf::RenderWindow& window, const Button& button)
+void drawButton(sf::RenderWindow& window, const Button& button, const sf::Font& font)
 {
 	// button rect
 	sf::RectangleShape rect(button.size);
@@ -89,12 +83,6 @@ void drawButton(sf::RenderWindow& window, const Button& button)
 	window.draw(rect);
 
 	// button text
-	sf::Font font;
-	if (!font.openFromFile(FONT_PATH))
-	{
-		std::cerr << FONT_LOAD_ERROR << std::endl;
-		return;
-	}
 	sf::Text text(font);
 	text.setString(button.buttonName);
 	text.setFillColor(button.textColor);
@@ -134,12 +122,15 @@ void checkTextInputClicked(std::vector<TextInput>& textInputList, const sf::Vect
 	}
 }
 
-void onGenerateButtonClicked(const std::vector<TextInput>& textInputList)
+void onGenerateButtonClicked(std::vector<TextInput>& textInputList)
 {
+	if (mazeGenerator.mazeStatus.statusType == PROCESSING)
+		return;
+
 	sf::Vector2i mazeSize = { 0, 0 };
 	int generationSpeed = 0;
 
-	for (TextInput textInput : textInputList)
+	for (TextInput& textInput : textInputList)
 	{
 
 		if (textInput.textInputName == "Width")
@@ -190,10 +181,18 @@ void onGenerateButtonClicked(const std::vector<TextInput>& textInputList)
 	mazeObj.maze_width = mazeSize.x;
 	mazeObj.maze_height = mazeSize.y;
 	initMaze(mazeObj);
-	mazeGenerator.mazeStatus = generateMaze(mazeObj);
+
+	if (generationSpeed <= 0)
+	{
+		mazeGenerator.mazeStatus = generateMazeInstantly(mazeObj);
+	}
+	else
+	{
+		startGeneration(mazeGenerator, mazeObj);
+	}
 }
 
-void checkButtonClicked(std::vector<Button>& buttonList, const std::vector<TextInput>& textInputList, const sf::Vector2f& mousePosition)
+void checkButtonClicked(std::vector<Button>& buttonList, std::vector<TextInput>& textInputList, const sf::Vector2f& mousePosition)
 {
 	float x = mousePosition.x;
 	float y = mousePosition.y;
@@ -272,7 +271,9 @@ void drawMaze(sf::RenderWindow& window, sf::Vector2f mazeRenderSize, sf::Vector2
 	float y0 = topLeftPos.y;
 	float r1 = mazeRenderSize.x / m; // horizontal wall length
 	float r2 = mazeRenderSize.y / n; // vertical wall length
-	const float WALL_THICKNESS = 3.0f;
+	const float WALL_THICKNESS = 2.5f;
+
+	sf::VertexArray walls(sf::PrimitiveType::Lines);
 
 	// draw vertical walls
 	for (int i = 0; i < mazeObj.vertical_walls.size(); i++)
@@ -282,11 +283,17 @@ void drawMaze(sf::RenderWindow& window, sf::Vector2f mazeRenderSize, sf::Vector2
 			if (!mazeObj.vertical_walls[i][j])
 				continue;
 
-			sf::Vector2f wallPos = { x0 + r1*j, y0 + r2*i };
+			sf::Vector2f startPos = { x0 + r1*j, y0 + r2*i };
+			sf::Vector2f endPos = { startPos.x, startPos.y + r2 };
+			walls.append(sf::Vertex(startPos, sf::Color::Black));
+			walls.append(sf::Vertex(endPos, sf::Color::Black));
+
+			/*
 			sf::RectangleShape wallRect({ WALL_THICKNESS, r2 });
 			wallRect.setFillColor(sf::Color::Black);
 			wallRect.setPosition(wallPos);
 			window.draw(wallRect);
+			*/
 		}
 	}
 
@@ -298,19 +305,26 @@ void drawMaze(sf::RenderWindow& window, sf::Vector2f mazeRenderSize, sf::Vector2
 			if (!mazeObj.horizontal_walls[i][j])
 				continue;
 
-			sf::Vector2f wallPos = { x0 + r1 * j, y0 + r2 * i };
+			sf::Vector2f startPos = { x0 + r1 * j, y0 + r2 * i };
+			sf::Vector2f endPos = { startPos.x + r1, startPos.y };
+			walls.append(sf::Vertex(startPos, sf::Color::Black));
+			walls.append(sf::Vertex(endPos, sf::Color::Black));
+
+			/*
 			sf::RectangleShape wallRect({ r1, WALL_THICKNESS });
 			wallRect.setFillColor(sf::Color::Black);
 			wallRect.setPosition(wallPos);
 			window.draw(wallRect);
+			*/
 		}
 	}
 
+	window.draw(walls);
 }
 
 void update()
 {
-
+	updateGeneration(mazeGenerator, mazeObj);
 }
 
 void initMazeGeneratorWindow(std::vector<TextInput>& textInputList, std::vector<Button>& buttonList)
@@ -414,9 +428,6 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window, std::vector<TextInput>& t
 	case ERROR:
 		genStatColor = sf::Color::Red;
 		break;
-	case WARNING:
-		genStatColor = sf::Color::Yellow;
-		break;
 	case PROCESSING:
 		genStatColor = sf::Color(190, 190, 190);
 		break;
@@ -439,13 +450,13 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window, std::vector<TextInput>& t
 	// draw text inputs
 	for (TextInput& textInput : textInputList)
 	{
-		drawTextInput(window, textInput);
+		drawTextInput(window, textInput, font);
 	}
 
 	// draw buttons
 	for (Button& button : buttonList)
 	{
-		drawButton(window, button);
+		drawButton(window, button, font);
 	}
 }
 
@@ -493,6 +504,8 @@ void windowLoop(sf::RenderWindow& window)
 				}
 			}
 		}
+
+		update();
 
 		window.clear(sf::Color::White);
 

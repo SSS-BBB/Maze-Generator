@@ -1,13 +1,5 @@
 #include "maze.hpp"
 #include <iostream>
-#include <stack>
-#include <chrono>
-
-struct CellPos
-{
-	int x = 0;
-	int y = 0;
-};
 
 void initMaze(Maze& mazeObj)
 {
@@ -291,7 +283,7 @@ CellPos getUnvisitedNeighbour(const Maze& mazeObj, const std::vector<std::vector
 	return unVisitedCells[selectedCellIndex];
 }
 
-MazeStatus generateMaze(Maze& mazeObj)
+MazeStatus generateMazeInstantly(Maze& mazeObj)
 {
 	// generate maze randomly
 	MazeStatus mazeStatus;
@@ -323,22 +315,22 @@ MazeStatus generateMaze(Maze& mazeObj)
 	// Randomized depth-first search
 	auto startTime = std::chrono::high_resolution_clock::now();
 
-	std::stack<CellPos> cellsStack;
+	std::stack<CellPos> cellStack;
 	CellPos initCell;
 	initCell.x = rand() % m;
 	initCell.y = rand() % n;
 	cellVisited[initCell.y][initCell.x] = true;
-	cellsStack.push(initCell);
-	while (!cellsStack.empty())
+	cellStack.push(initCell);
+	while (!cellStack.empty())
 	{
-		CellPos currentCell = cellsStack.top();
-		cellsStack.pop(); // pop function doesn't return a value for some reason
+		CellPos currentCell = cellStack.top();
+		cellStack.pop(); // pop function doesn't return a value for some reason
 
 		CellPos chosenCell = getUnvisitedNeighbour(mazeObj, cellVisited, currentCell);
 		if (chosenCell.x < 0 || chosenCell.y < 0) // dead end
 			continue;
 
-		cellsStack.push(currentCell);
+		cellStack.push(currentCell);
 
 		if (chosenCell.x == currentCell.x - 1)
 		{
@@ -366,25 +358,124 @@ MazeStatus generateMaze(Maze& mazeObj)
 
 		else
 		{
-			mazeStatus.statusType = WARNING;
-			mazeStatus.statusMessage = "Something went wrong during the generation";
-			std::cerr << "The chosen cell is not the neighbor of the current cell." << std::endl;
+			mazeStatus.statusType = ERROR;
+			mazeStatus.statusMessage = "The chosen cell is not the neighbor of the current cell";
+			return mazeStatus;
 		}
 
 		cellVisited[chosenCell.y][chosenCell.x] = true;
-		cellsStack.push(chosenCell);
+		cellStack.push(chosenCell);
 	}
 
-	// TODO: make this show in the window
 	auto endTime = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double, std::milli> elapsed = endTime - startTime;
 	std::cout << "Maze Generated in " << elapsed.count() << " ms" << std::endl;
 
-	if (mazeStatus.statusType != WARNING)
-	{
-		mazeStatus.statusType = SUCCESSFUL;
-		mazeStatus.statusMessage = "Maze Generated Successfully in " + std::to_string(elapsed.count()) + " ms";
-	}
+	mazeStatus.statusType = SUCCESSFUL;
+	mazeStatus.statusMessage = "Maze Generated Successfully in " + std::to_string(elapsed.count()) + " ms";
 
 	return mazeStatus;
+}
+
+void startGeneration(MazeGenerator& mazeGenerator, Maze& mazeObj)
+{
+	int m = mazeObj.maze_width;
+	int n = mazeObj.maze_height;
+
+	if (m <= 0 || n <= 0)
+	{
+		mazeGenerator.mazeStatus.statusType = ERROR;
+		mazeGenerator.mazeStatus.statusMessage = "Invalid Cell Number";
+		std::cerr << "Maze Width or Height is less than or equals to 0, unable to start generation." << std::endl;
+		return;
+	}
+
+	mazeGenerator.mazeStatus.statusType = PROCESSING;
+	mazeGenerator.mazeStatus.statusMessage = "Generating...";
+
+	if (!mazeGenerator.cellVisited.empty())
+		mazeGenerator.cellVisited.clear();
+
+	mazeGenerator.cellVisited.reserve(n);
+	for (int i = 0; i < n; i++)
+	{
+		std::vector<bool> row;
+		row.reserve(m);
+		for (int j = 0; j < m; j++)
+		{
+			row.push_back(false);
+		}
+		mazeGenerator.cellVisited.push_back(row);
+	}
+
+	while (!mazeGenerator.cellStack.empty())
+		mazeGenerator.cellStack.pop();
+
+	mazeGenerator.startTime = std::chrono::high_resolution_clock::now();
+
+	CellPos initCell;
+	initCell.x = rand() % m;
+	initCell.y = rand() % n;
+	mazeGenerator.cellVisited[initCell.y][initCell.x] = true;
+	mazeGenerator.cellStack.push(initCell);
+}
+
+void updateGeneration(MazeGenerator& mazeGenerator, Maze& mazeObj)
+{
+	if (mazeGenerator.mazeStatus.statusType != PROCESSING)
+		return;
+
+	if (mazeGenerator.cellStack.empty())
+	{
+		// finished generating
+		std::chrono::time_point<std::chrono::high_resolution_clock> endTime = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double, std::milli> elapsed = endTime - mazeGenerator.startTime;
+
+		mazeGenerator.mazeStatus.statusType = SUCCESSFUL;
+		mazeGenerator.mazeStatus.statusMessage = "Maze Generated Successfully in " + std::to_string(elapsed.count()) + " ms";
+		return;
+	}
+
+	CellPos currentCell = mazeGenerator.cellStack.top();
+	mazeGenerator.cellStack.pop(); // pop function doesn't return a value for some reason
+
+	CellPos chosenCell = getUnvisitedNeighbour(mazeObj, mazeGenerator.cellVisited, currentCell);
+	if (chosenCell.x < 0 || chosenCell.y < 0) // dead end
+		return;
+
+	mazeGenerator.cellStack.push(currentCell);
+
+	if (chosenCell.x == currentCell.x - 1)
+	{
+		// left cell -> remove left wall
+		setLeftWall(mazeObj, currentCell, false);
+	}
+
+	else if (chosenCell.x == currentCell.x + 1)
+	{
+		// right cell -> remove right wall
+		setRightWall(mazeObj, currentCell, false);
+	}
+
+	else if (chosenCell.y == currentCell.y - 1)
+	{
+		// top cell -> remove top wall
+		setTopWall(mazeObj, currentCell, false);
+	}
+
+	else if (chosenCell.y == currentCell.y + 1)
+	{
+		// bottom cell -> remove bottom wall
+		setBottomWall(mazeObj, currentCell, false);
+	}
+
+	else
+	{
+		mazeGenerator.mazeStatus.statusType = ERROR;
+		mazeGenerator.mazeStatus.statusMessage = "The chosen cell is not the neighbor of the current cell";
+		return;
+	}
+
+	mazeGenerator.cellVisited[chosenCell.y][chosenCell.x] = true;
+	mazeGenerator.cellStack.push(chosenCell);
 }

@@ -9,6 +9,7 @@ int main()
 	const int WINDOW_HEIGHT = 720;
 
 	sf::RenderWindow window(sf::VideoMode({ WINDOW_WIDTH, WINDOW_HEIGHT }), "Maze Generator");
+	window.setVerticalSyncEnabled(false);
 
 	windowLoop(window);
 
