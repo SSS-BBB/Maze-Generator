@@ -256,14 +256,100 @@ void onTextEntered(char enteredChar, std::vector<TextInput>& textInputList)
 	}
 }
 
-void drawMaze(sf::RenderWindow& window, sf::Vector2f mazeRenderSize, sf::Vector2f topLeftPos)
+void drawMazeProcess(sf::RenderWindow& window, sf::Vector2f mazeRenderSize, sf::Vector2f topLeftPos)
+{
+	// draw visited cell first, then deadend, and lastly current cell
+	int m = mazeObj.maze_width;
+	int n = mazeObj.maze_height;
+
+	if (m <= 0 || n <= 0)
+	{
+		std::cerr << "Maze Width or Height is less than or equals to 0, unable to draw maze process." << std::endl;
+		return;
+	}
+
+	float padding = 0.0f;
+	float cellWidth = (mazeRenderSize.x / m) - (2.0f * padding); 
+	float cellHeight = (mazeRenderSize.y / n) - (2.0f * padding);
+
+	sf::VertexArray cellVertexArray(sf::PrimitiveType::Triangles);
+
+	for (CellPos cell : mazeGenerator.visitedPos)
+	{
+		sf::Vector2f p1 = { topLeftPos.x + cellWidth*cell.x + padding, topLeftPos.y + cellHeight*cell.y + padding };
+		sf::Vector2f p2 = { p1.x + cellWidth, p1.y };
+		sf::Vector2f p3 = { p1.x, p1.y + cellHeight };
+		sf::Vector2f p4 = { p1.x + cellWidth, p1.y + cellHeight };
+
+		sf::Color color = sf::Color::Yellow;
+
+		// first triangle
+		cellVertexArray.append(sf::Vertex(p1, color));
+		cellVertexArray.append(sf::Vertex(p2, color));
+		cellVertexArray.append(sf::Vertex(p3, color));
+
+		// second triangle to form a rectangle
+		cellVertexArray.append(sf::Vertex(p2, color));
+		cellVertexArray.append(sf::Vertex(p3, color));
+		cellVertexArray.append(sf::Vertex(p4, color));
+	}
+
+	for (CellPos cell : mazeGenerator.deadEndPos)
+	{
+		sf::Vector2f p1 = { topLeftPos.x + cellWidth * cell.x + padding, topLeftPos.y + cellHeight * cell.y + padding };
+		sf::Vector2f p2 = { p1.x + cellWidth, p1.y };
+		sf::Vector2f p3 = { p1.x, p1.y + cellHeight };
+		sf::Vector2f p4 = { p1.x + cellWidth, p1.y + cellHeight };
+
+		sf::Color color = sf::Color::Green;
+
+		// first triangle
+		cellVertexArray.append(sf::Vertex(p1, color));
+		cellVertexArray.append(sf::Vertex(p2, color));
+		cellVertexArray.append(sf::Vertex(p3, color));
+
+		// second triangle to form a rectangle
+		cellVertexArray.append(sf::Vertex(p2, color));
+		cellVertexArray.append(sf::Vertex(p3, color));
+		cellVertexArray.append(sf::Vertex(p4, color));
+	}
+
+	// current cell
+	if (mazeGenerator.cellStack.empty())
+	{
+		window.draw(cellVertexArray);
+		return;
+	}
+
+	CellPos cell = mazeGenerator.cellStack.top();
+	sf::Vector2f p1 = { topLeftPos.x + cellWidth * cell.x + padding, topLeftPos.y + cellHeight * cell.y + padding };
+	sf::Vector2f p2 = { p1.x + cellWidth, p1.y };
+	sf::Vector2f p3 = { p1.x, p1.y + cellHeight };
+	sf::Vector2f p4 = { p1.x + cellWidth, p1.y + cellHeight };
+
+	sf::Color color = sf::Color::Blue;
+
+	// first triangle
+	cellVertexArray.append(sf::Vertex(p1, color));
+	cellVertexArray.append(sf::Vertex(p2, color));
+	cellVertexArray.append(sf::Vertex(p3, color));
+
+	// second triangle to form a rectangle
+	cellVertexArray.append(sf::Vertex(p2, color));
+	cellVertexArray.append(sf::Vertex(p3, color));
+	cellVertexArray.append(sf::Vertex(p4, color));
+
+	window.draw(cellVertexArray);
+}
+
+void drawMazeWall(sf::RenderWindow& window, sf::Vector2f mazeRenderSize, sf::Vector2f topLeftPos)
 {
 	int m = mazeObj.maze_width;
 	int n = mazeObj.maze_height;
 
 	if (m <= 0 || n <= 0)
 	{
-		std::cerr << "Maze Width or Height is less than or equals to 0, unable to draw a maze." << std::endl;
+		std::cerr << "Maze Width or Height is less than or equals to 0, unable to draw maze walls." << std::endl;
 		return;
 	}
 
@@ -388,7 +474,13 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window, std::vector<TextInput>& t
 	titleText.setPosition({ 256.0, 20.0 });
 	window.draw(titleText);
 
-	drawMaze(window, { 650.0f, 500.0f }, { 40.0f, 80.0f });
+	sf::Vector2f mazeSize = { 650.0f, 500.0f };
+	sf::Vector2f mazePos = { 40.0f, 80.0f };
+
+	if (mazeGenerator.mazeStatus.statusType == PROCESSING)
+		drawMazeProcess(window, mazeSize, mazePos);
+
+	drawMazeWall(window, mazeSize, mazePos);
 
 	// Width Text
 	sf::Text widthText(font);

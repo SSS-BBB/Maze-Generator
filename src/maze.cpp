@@ -411,12 +411,22 @@ void startGeneration(MazeGenerator& mazeGenerator, Maze& mazeObj)
 	while (!mazeGenerator.cellStack.empty())
 		mazeGenerator.cellStack.pop();
 
+	if (!mazeGenerator.visitedPos.empty())
+		mazeGenerator.visitedPos.clear();
+
+	if (!mazeGenerator.deadEndPos.empty())
+		mazeGenerator.deadEndPos.clear();
+
+	mazeGenerator.visitedPos.reserve(n * m);
+	mazeGenerator.deadEndPos.reserve(n * m);
+
 	mazeGenerator.startTime = std::chrono::high_resolution_clock::now();
 
 	CellPos initCell;
 	initCell.x = rand() % m;
 	initCell.y = rand() % n;
 	mazeGenerator.cellVisited[initCell.y][initCell.x] = true;
+	mazeGenerator.visitedPos.push_back(initCell);
 	mazeGenerator.cellStack.push(initCell);
 }
 
@@ -440,8 +450,12 @@ void updateGeneration(MazeGenerator& mazeGenerator, Maze& mazeObj)
 	mazeGenerator.cellStack.pop(); // pop function doesn't return a value for some reason
 
 	CellPos chosenCell = getUnvisitedNeighbour(mazeObj, mazeGenerator.cellVisited, currentCell);
-	if (chosenCell.x < 0 || chosenCell.y < 0) // dead end
+	if (chosenCell.x < 0 || chosenCell.y < 0)
+	{
+		// dead end
+		mazeGenerator.deadEndPos.push_back(currentCell);
 		return;
+	}
 
 	mazeGenerator.cellStack.push(currentCell);
 
@@ -477,5 +491,6 @@ void updateGeneration(MazeGenerator& mazeGenerator, Maze& mazeObj)
 	}
 
 	mazeGenerator.cellVisited[chosenCell.y][chosenCell.x] = true;
+	mazeGenerator.visitedPos.push_back(chosenCell);
 	mazeGenerator.cellStack.push(chosenCell);
 }

@@ -41,9 +41,12 @@ struct MazeGenerator
 {
 	MazeStatus mazeStatus;
 	std::vector<std::vector<bool>> cellVisited;
-	CellPos selectedNeighborCell;
 	std::stack<CellPos> cellStack;
 	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
+
+	// visualization
+	std::vector<CellPos> visitedPos;
+	std::vector<CellPos> deadEndPos;
 };
 
 void initMaze(Maze& mazeObj);
