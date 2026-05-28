@@ -2,4 +2,4 @@
 
 #include <SFML/Graphics.hpp>
 
-void drawMazeGeneratorWindow(sf::RenderWindow& window);
+void windowLoop(sf::RenderWindow& window);

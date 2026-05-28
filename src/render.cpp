@@ -1,4 +1,3 @@
-#include <string>
 #include <vector>
 #include <iostream>
 #include <functional>
@@ -32,6 +31,7 @@ const std::string FONT_LOAD_ERROR = "Unable to open font from " + FONT_PATH
 								+ "Please make sure there is a fonts folder containing Roboto-Regular.ttf in the same directory as CMakeList.txt, and configure CMake";
 
 Maze mazeObj;
+MazeGenerator mazeGenerator;
 
 void drawTextInput(sf::RenderWindow& window, TextInput& textInput)
 {
@@ -190,7 +190,7 @@ void onGenerateButtonClicked(const std::vector<TextInput>& textInputList)
 	mazeObj.maze_width = mazeSize.x;
 	mazeObj.maze_height = mazeSize.y;
 	initMaze(mazeObj);
-	generateMaze(mazeObj);
+	mazeGenerator.mazeStatus = generateMaze(mazeObj);
 }
 
 void checkButtonClicked(std::vector<Button>& buttonList, const std::vector<TextInput>& textInputList, const sf::Vector2f& mousePosition)
@@ -259,14 +259,6 @@ void onTextEntered(char enteredChar, std::vector<TextInput>& textInputList)
 
 void drawMaze(sf::RenderWindow& window, sf::Vector2f mazeRenderSize, sf::Vector2f topLeftPos)
 {
-	/*
-	// Maze Frame
-	sf::RectangleShape mazeFrame(mazeRenderSize);
-	mazeFrame.setFillColor(sf::Color::Black);
-	mazeFrame.setPosition(topLeftPos);
-	window.draw(mazeFrame);
-	*/
-
 	int m = mazeObj.maze_width;
 	int n = mazeObj.maze_height;
 
@@ -316,19 +308,13 @@ void drawMaze(sf::RenderWindow& window, sf::Vector2f mazeRenderSize, sf::Vector2
 
 }
 
-void drawMazeGeneratorWindow(sf::RenderWindow& window)
+void update()
 {
-	std::vector<TextInput> textInputList;
-	std::vector<Button> buttonList;
 
-	sf::Font font;
-	if (!font.openFromFile(FONT_PATH))
-	{
-		std::cerr << FONT_LOAD_ERROR << std::endl;
-		return;
-	}
+}
 
-
+void initMazeGeneratorWindow(std::vector<TextInput>& textInputList, std::vector<Button>& buttonList)
+{
 	// text input and button struct
 	TextInput widthTextInput;
 	widthTextInput.textInputName = "Width";
@@ -347,8 +333,14 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 
 	Button generateButton;
 	generateButton.buttonName = "Generate";
-	generateButton.position = { 920.0f, 315.0f + 100.0f };
+	generateButton.position = { 920.0f, 415.0f };
 	buttonList.emplace_back(generateButton);
+
+	Button pathFindingButton;
+	pathFindingButton.buttonName = "Path Finding";
+	pathFindingButton.position = { 920.0f - 10.0f, 615.0f };
+	pathFindingButton.size = { 140.0f, 60.0f };
+	buttonList.emplace_back(pathFindingButton);
 
 	Button saveButton;
 	saveButton.buttonName = "Save";
@@ -359,12 +351,117 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 	loadButton.buttonName = "Load";
 	loadButton.position = { 155.0f + 200.0f, 590.0f };
 	buttonList.emplace_back(loadButton);
+}
 
-	Button pathFindingButton;
-	pathFindingButton.buttonName = "Path Finding";
-	pathFindingButton.position = { 920.0f - 10.0f, 415.0f + 100.0f };
-	pathFindingButton.size = { 140.0f, 60.0f };
-	buttonList.emplace_back(pathFindingButton);
+void drawMazeGeneratorWindow(sf::RenderWindow& window, std::vector<TextInput>& textInputList, 
+							 std::vector<Button>& buttonList, const sf::Font& font, const sf::Vector2f mousePosition)
+{
+	// Mouse Position Text
+	sf::Text mousePosText(font);
+	mousePosText.setString("Mouse Position: (" +
+		std::to_string(mousePosition.x) + "," +
+		std::to_string(mousePosition.y) + ")");
+	mousePosText.setCharacterSize(16);
+	mousePosText.setFillColor(sf::Color::Black);
+	mousePosText.setPosition({ 16.0, 680.0 });
+	window.draw(mousePosText);
+
+	// Maze Generator Title
+	sf::Text titleText(font);
+	titleText.setString("Maze Generator");
+	titleText.setCharacterSize(30);
+	titleText.setFillColor(sf::Color::Black);
+	titleText.setPosition({ 256.0, 20.0 });
+	window.draw(titleText);
+
+	drawMaze(window, { 650.0f, 500.0f }, { 40.0f, 80.0f });
+
+	// Width Text
+	sf::Text widthText(font);
+	widthText.setString("Width");
+	widthText.setCharacterSize(22);
+	widthText.setFillColor(sf::Color::Black);
+	widthText.setPosition({ 792.0f, 180.0f });
+	window.draw(widthText);
+
+	// Height Text
+	sf::Text heightText(font);
+	heightText.setString("Height");
+	heightText.setCharacterSize(22);
+	heightText.setFillColor(sf::Color::Black);
+	heightText.setPosition({ 792.0f + 300.0f, 180.0f });
+	window.draw(heightText);
+
+	// Speed Text
+	sf::Text speedText(font);
+	speedText.setString("Speed");
+	speedText.setCharacterSize(22);
+	speedText.setFillColor(sf::Color::Black);
+	speedText.setPosition({ 942.0f, 180.0f + 100.0f });
+	window.draw(speedText);
+
+	// Maze Generation Status Text
+	sf::Text genStatText(font);
+	genStatText.setString(mazeGenerator.mazeStatus.statusMessage);
+	genStatText.setCharacterSize(20);
+
+	sf::Color genStatColor = sf::Color::Black;
+	switch (mazeGenerator.mazeStatus.statusType)
+	{
+	case IDLE:
+		genStatColor = sf::Color::Black;
+		break;
+	case ERROR:
+		genStatColor = sf::Color::Red;
+		break;
+	case WARNING:
+		genStatColor = sf::Color::Yellow;
+		break;
+	case PROCESSING:
+		genStatColor = sf::Color(190, 190, 190);
+		break;
+	case SUCCESSFUL:
+		genStatColor = sf::Color::Green;
+		break;
+	default:
+		genStatColor = sf::Color::Black;
+		break;
+	}
+
+	genStatText.setFillColor(genStatColor);
+	float speedTextWidth = speedText.getGlobalBounds().size.x;
+	float genTextWidth = genStatText.getGlobalBounds().size.x;
+	float speedTextXPos = speedText.getPosition().x;
+	float genTextXPos = (2*speedTextXPos + speedTextWidth - genTextWidth) / 2.0f;
+	genStatText.setPosition({ genTextXPos, 500.0f });
+	window.draw(genStatText);
+
+	// draw text inputs
+	for (TextInput& textInput : textInputList)
+	{
+		drawTextInput(window, textInput);
+	}
+
+	// draw buttons
+	for (Button& button : buttonList)
+	{
+		drawButton(window, button);
+	}
+}
+
+void windowLoop(sf::RenderWindow& window)
+{
+	std::vector<TextInput> mazeGenTextInputList;
+	std::vector<Button> mazeGenButtonList;
+
+	sf::Font font;
+	if (!font.openFromFile(FONT_PATH))
+	{
+		std::cerr << FONT_LOAD_ERROR << std::endl;
+		return;
+	}
+
+	initMazeGeneratorWindow(mazeGenTextInputList, mazeGenButtonList);
 
 	while (window.isOpen())
 	{
@@ -381,8 +478,8 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 				// left mouse button clicked
 				if (mousePressed->button == sf::Mouse::Button::Left)
 				{
-					checkTextInputClicked(textInputList, mousePosition);
-					checkButtonClicked(buttonList, textInputList, mousePosition);
+					checkTextInputClicked(mazeGenTextInputList, mousePosition);
+					checkButtonClicked(mazeGenButtonList, mazeGenTextInputList, mousePosition);
 				}
 			}
 
@@ -392,7 +489,7 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 				if (textEntered->unicode < 128)
 				{
 					char enterdChar = static_cast<char>(textEntered->unicode);
-					onTextEntered(enterdChar, textInputList);
+					onTextEntered(enterdChar, mazeGenTextInputList);
 				}
 			}
 		}
@@ -400,86 +497,8 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 		window.clear(sf::Color::White);
 
 		// render window
-
-		// Mouse Position Text
-		sf::Text mousePosText(font);
-		mousePosText.setString("Mouse Position: (" + 
-								std::to_string(mousePosition.x) + "," +
-								std::to_string(mousePosition.y) + ")");
-		mousePosText.setCharacterSize(16);
-		mousePosText.setFillColor(sf::Color::Black);
-		mousePosText.setPosition({ 16.0, 680.0 });
-		window.draw(mousePosText);
-
-		// Maze Generator Title
-		sf::Text titleText(font);
-		titleText.setString("Maze Generator");
-		titleText.setCharacterSize(30);
-		titleText.setFillColor(sf::Color::Black);
-		titleText.setPosition({ 256.0, 20.0 });
-		window.draw(titleText);
-
-		drawMaze(window, { 650.0f, 500.0f }, { 40.0f, 80.0f });
-
-		// Width Text
-		sf::Text widthText(font);
-		widthText.setString("Width");
-		widthText.setCharacterSize(22);
-		widthText.setFillColor(sf::Color::Black);
-		widthText.setPosition({ 792.0f, 180.0f });
-		window.draw(widthText);
-
-		// Width Text Input
-		// drawTextInput(window, widthTextInput);
-
-		// Height Text
-		sf::Text heightText(font);
-		heightText.setString("Height");
-		heightText.setCharacterSize(22);
-		heightText.setFillColor(sf::Color::Black);
-		heightText.setPosition({ 792.0f + 300.0f, 180.0f });
-		window.draw(heightText);
-
-		// Height Text Input
-		// drawTextInput(window, heightTextInput);
-
-		// Speed Text
-		sf::Text speedText(font);
-		speedText.setString("Speed");
-		speedText.setCharacterSize(22);
-		speedText.setFillColor(sf::Color::Black);
-		speedText.setPosition({ 942.0f, 180.0f + 100.0f });
-		window.draw(speedText);
-
-		// Speed Text Input
-		// drawTextInput(window, speedTextInput);
-
-		// Generate Button
-		// drawButton(window, generateButton);
-
-		// Save Button
-		// drawButton(window, saveButton);
-
-		// Load Button
-		// drawButton(window, loadButton);
-
-		// Path Finding Button
-		// drawButton(window, pathFindingButton);
-
+		drawMazeGeneratorWindow(window, mazeGenTextInputList, mazeGenButtonList, font, mousePosition);
 		
-		// draw text inputs
-		for (TextInput& textInput : textInputList)
-		{
-			drawTextInput(window, textInput);
-		}
-
-		// draw buttons
-		for (Button& button : buttonList)
-		{
-			drawButton(window, button);
-		}
-		
-
 		window.display();
 	}
 }

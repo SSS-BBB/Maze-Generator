@@ -10,7 +10,7 @@ int main()
 
 	sf::RenderWindow window(sf::VideoMode({ WINDOW_WIDTH, WINDOW_HEIGHT }), "Maze Generator");
 
-	drawMazeGeneratorWindow(window);
+	windowLoop(window);
 
 	return 0;
 }

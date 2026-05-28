@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <string>
 
 struct Maze
 {
@@ -17,7 +18,24 @@ struct Maze
 	std::vector<std::vector<bool>> vertical_walls;
 };
 
+enum StatusType
+{
+	IDLE, ERROR, WARNING, PROCESSING, SUCCESSFUL
+};
+
+struct MazeStatus
+{
+	StatusType statusType = IDLE;
+	std::string statusMessage = "";
+};
+
+struct MazeGenerator
+{
+	MazeStatus mazeStatus;
+	std::vector<std::vector<bool>> cellVisited;
+};
+
 void initMaze(Maze& mazeObj);
 
-void setMaze(Maze& mazeObj);
-void generateMaze(Maze& mazeObj);
+MazeStatus setMaze(Maze& mazeObj);
+MazeStatus generateMaze(Maze& mazeObj);
