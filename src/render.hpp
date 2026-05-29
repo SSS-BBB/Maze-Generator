@@ -4,4 +4,5 @@
 
 void init(sf::Font windowFont);
 void update();
-void draw(sf::RenderWindow& window);
+void eventHandling(sf::RenderWindow& window, const sf::Vector2f& mousePosition);
+void draw(sf::RenderWindow& window, const sf::Vector2f& mousePosition);

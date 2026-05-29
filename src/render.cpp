@@ -4,8 +4,20 @@
 #include "render.hpp"
 #include "maze.hpp"
 
+enum Page
+{
+	MAZE_GEN, PATH_FIND
+};
+
+enum Dialog
+{
+	NONE, SAVE_MAZE, LOAD_MAZE
+};
+
 struct TextInput
 {
+	Page textInputPage = MAZE_GEN;
+	Dialog textInputDialog = NONE;
 	std::string textInputName = "";
 	std::string inputString = "";
 	std::string filterText = "0123456789"; // only filter text allowed to input
@@ -18,6 +30,8 @@ struct TextInput
 
 struct Button
 {
+	Page buttonPage = MAZE_GEN;
+	Dialog buttonDialog = NONE;
 	std::string buttonName = "Button";
 	bool isClicked = false;
 	sf::Vector2f position = { 0.0f, 0.0f };
@@ -26,7 +40,33 @@ struct Button
 	sf::Color textColor = sf::Color::Black;
 };
 
+struct InputDialog
+{
+	Dialog dialogType = NONE;
+	sf::Vector2f position = { 390.0f, 185.0f };
+	sf::Vector2f size = { 500.0f, 350.0f };
+	std::string title = "Input Dialog";
+	std::string descString = "Description"; // description
+
+	int titleCharSize = 32;
+	int descCharSize = 22;
+
+	// sf::Vector2f textInputSize = { 300.0f, 40.0f };
+
+	sf::Vector2f titlePos;
+	sf::Vector2f descPos;
+
+	TextInput textInput;
+	Button okButton;
+	Button cancelButton;
+};
+
 sf::Font font;
+
+Page currentPage = MAZE_GEN;
+Dialog currentDialog = NONE;
+
+InputDialog saveMazeDialog, loadMazeDialog;
 
 std::vector<TextInput> mazeGenTextInputList;
 std::vector<Button> mazeGenButtonList;
@@ -95,34 +135,35 @@ void drawButton(sf::RenderWindow& window, const Button& button)
 	window.draw(text);
 }
 
-void checkTextInputClicked(const sf::Vector2f& mousePosition)
+bool isElementClicked(const sf::Vector2f& mousePosition, const sf::Vector2f& elementPos, const sf::Vector2f& elementSize)
 {
 	float x = mousePosition.x;
 	float y = mousePosition.y;
 
-	for (TextInput& textInput : mazeGenTextInputList)
+	float x0 = elementPos.x;
+	float y0 = elementPos.y;
+	float x1 = elementPos.x + elementSize.x;
+	float y1 = elementPos.y + elementSize.y;
+
+	// x0 <= x <= x1 && y0 <= y <= y1
+	return x >= x0 && x <= x1 && y >= y0 && y <= y1;
+}
+
+void checkTextInputClicked(const sf::Vector2f& mousePosition, TextInput& textInput)
+{
+	if (isElementClicked(mousePosition, textInput.position, textInput.size))
 	{
-		float x0 = textInput.position.x;
-		float y0 = textInput.position.y;
-		float x1 = textInput.position.x + textInput.size.x;
-		float y1 = textInput.position.y + textInput.size.y;
+		textInput.isListening = true;
+		textInput.showCursor = true;
+		textInput.cursorClock.restart();
+	}
+	else
+	{
+		textInput.isListening = false;
 
-		// x0 <= x <= x1 && y0 <= y <= y1
-		if (x >= x0 && x <= x1 && y >= y0 && y <= y1)
-		{
-			textInput.isListening = true;
-			textInput.showCursor = true;
-			textInput.cursorClock.restart();
-		
-		}
-		else
-		{
-			textInput.isListening = false;
-
-			// stop blinking cursor
-			textInput.showCursor = false;
-			textInput.cursorClock.reset();
-		}
+		// stop blinking cursor
+		textInput.showCursor = false;
+		textInput.cursorClock.reset();
 	}
 }
 
@@ -197,27 +238,48 @@ void onGenerateButtonClicked()
 	}
 }
 
-void checkButtonClicked(const sf::Vector2f& mousePosition)
+void onSaveMazeButtonClicked()
 {
-	float x = mousePosition.x;
-	float y = mousePosition.y;
+	if (mazeGenerator.mazeStatus.statusType != SUCCESSFUL)
+		return;
 
-	for (Button& button : mazeGenButtonList)
+	currentDialog = SAVE_MAZE;
+}
+
+void onLoadMazeButtonClicked()
+{
+	if (mazeGenerator.mazeStatus.statusType == PROCESSING)
+		return;
+
+	currentDialog = LOAD_MAZE;
+}
+
+void checkButtonClicked(const sf::Vector2f& mousePosition, std::vector<Button>& buttonList)
+{
+	for (Button& button : buttonList)
 	{
-		float x0 = button.position.x;
-		float y0 = button.position.y;
-		float x1 = button.position.x + button.size.x;
-		float y1 = button.position.y + button.size.y;
-
 		// x0 <= x <= x1 && y0 <= y <= y1
-		if (x >= x0 && x <= x1 && y >= y0 && y <= y1)
+		if (isElementClicked(mousePosition, button.position, button.size))
 		{
 			button.isClicked = true;
-			std::cout << button.buttonName + " button is clicked!" << std::endl;
 
-			if (button.buttonName == "Generate")
+			// maze generation page
+			if (button.buttonPage == MAZE_GEN)
 			{
-				onGenerateButtonClicked();
+				if (button.buttonName == "Generate")
+				{
+					onGenerateButtonClicked();
+				}
+
+				else if (button.buttonName == "Save")
+				{
+					onSaveMazeButtonClicked();
+				}
+
+				else if (button.buttonName == "Load")
+				{
+					onLoadMazeButtonClicked();
+				}
 			}
 
 			break;
@@ -241,22 +303,20 @@ bool isCharInString(char target, std::string str)
 	return false;
 }
 
-void onTextEntered(char enteredChar)
+void onTextEntered(char enteredChar, TextInput& textInput)
 {
-	for (TextInput& textInput : mazeGenTextInputList)
+	if (textInput.isListening)
 	{
-		if (textInput.isListening)
+		if (enteredChar == '\b')
 		{
-			if (isCharInString(enteredChar, textInput.filterText))
-			{
-				textInput.inputString += enteredChar;
-			}
-			if (enteredChar == '\b')
-			{
-				// back space is preesed, remove last character
-				if (!textInput.inputString.empty())
-					textInput.inputString.pop_back();
-			}
+			// back space is preesed, remove last character
+			if (!textInput.inputString.empty())
+				textInput.inputString.pop_back();
+		}
+
+		else if (textInput.filterText.empty() || isCharInString(enteredChar, textInput.filterText))
+		{
+			textInput.inputString += enteredChar;
 		}
 	}
 }
@@ -378,13 +438,6 @@ void drawMazeWall(sf::RenderWindow& window, sf::Vector2f mazeRenderSize, sf::Vec
 			sf::Vector2f endPos = { startPos.x, startPos.y + r2 };
 			walls.append(sf::Vertex(startPos, sf::Color::Black));
 			walls.append(sf::Vertex(endPos, sf::Color::Black));
-
-			/*
-			sf::RectangleShape wallRect({ WALL_THICKNESS, r2 });
-			wallRect.setFillColor(sf::Color::Black);
-			wallRect.setPosition(wallPos);
-			window.draw(wallRect);
-			*/
 		}
 	}
 
@@ -400,13 +453,6 @@ void drawMazeWall(sf::RenderWindow& window, sf::Vector2f mazeRenderSize, sf::Vec
 			sf::Vector2f endPos = { startPos.x + r1, startPos.y };
 			walls.append(sf::Vertex(startPos, sf::Color::Black));
 			walls.append(sf::Vertex(endPos, sf::Color::Black));
-
-			/*
-			sf::RectangleShape wallRect({ r1, WALL_THICKNESS });
-			wallRect.setFillColor(sf::Color::Black);
-			wallRect.setPosition(wallPos);
-			window.draw(wallRect);
-			*/
 		}
 	}
 
@@ -463,37 +509,36 @@ void initMazeGeneratorWindow(sf::Font windowFont)
 	mazeGenButtonList.emplace_back(loadButton);
 }
 
-void drawMazeGeneratorWindow(sf::RenderWindow& window)
+void mazeGeneratorEventHandling(const sf::Vector2f& mousePosition, const std::optional<sf::Event>& event)
 {
-	sf::Vector2f mousePosition = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-
-	while (const std::optional event = window.pollEvent())
+	// mouse clicked
+	if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>())
 	{
-		if (event->is<sf::Event::Closed>())
-			window.close();
-
-		// mouse clicked
-		if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>())
+		// left mouse button clicked
+		if (mousePressed->button == sf::Mouse::Button::Left)
 		{
-			// left mouse button clicked
-			if (mousePressed->button == sf::Mouse::Button::Left)
-			{
-				checkTextInputClicked(mousePosition);
-				checkButtonClicked(mousePosition);
-			}
-		}
+			for (TextInput& textInput : mazeGenTextInputList)
+				checkTextInputClicked(mousePosition, textInput);
 
-		// user typing
-		if (const auto* textEntered = event->getIf<sf::Event::TextEntered>())
-		{
-			if (textEntered->unicode < 128)
-			{
-				char enterdChar = static_cast<char>(textEntered->unicode);
-				onTextEntered(enterdChar);
-			}
+			checkButtonClicked(mousePosition, mazeGenButtonList);
 		}
 	}
 
+	// user typing
+	if (const auto* textEntered = event->getIf<sf::Event::TextEntered>())
+	{
+		if (textEntered->unicode < 128)
+		{
+			char enterdChar = static_cast<char>(textEntered->unicode);
+
+			for (TextInput& textInput : mazeGenTextInputList)
+				onTextEntered(enterdChar, textInput);
+		}
+	}
+}
+
+void drawMazeGeneratorWindow(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
+{
 	// Mouse Position Text
 	sf::Text mousePosText(font);
 	mousePosText.setString("Mouse Position: (" +
@@ -585,21 +630,181 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window)
 	}
 }
 
+void initInputDialog(InputDialog& inputDialog)
+{
+	const float PADDING = 8.0f;
+
+	// create temporary UI objects to calculate positions
+	sf::Text titleText(font);
+	titleText.setString(inputDialog.title);
+	titleText.setCharacterSize(inputDialog.titleCharSize);
+	titleText.setFillColor(sf::Color::Black);
+	sf::Vector2f titlePos;
+	titlePos.x = (2* inputDialog.position.x + inputDialog.size.x - titleText.getGlobalBounds().size.x) / 2.0f;
+	titlePos.y = inputDialog.position.y + PADDING;
+	inputDialog.titlePos = titlePos;
+	titleText.setPosition(titlePos);
+
+	// set text input and button size before position
+	sf::Text descText(font);
+	descText.setString(inputDialog.descString);
+	descText.setCharacterSize(inputDialog.descCharSize);
+	descText.setFillColor(sf::Color::Black);
+	float elementDistance = (inputDialog.size.y - 2 * PADDING - titleText.getGlobalBounds().size.y - inputDialog.textInput.size.y - descText.getGlobalBounds().size.y - inputDialog.okButton.size.y) / 3.0f;
+	sf::Vector2f descPos;
+	descPos.x = (2 * titleText.getPosition().x + titleText.getGlobalBounds().size.x - descText.getGlobalBounds().size.x) / 2.0f;
+	descPos.y = titlePos.y + titleText.getGlobalBounds().size.y + elementDistance;
+	inputDialog.descPos = descPos;
+
+	inputDialog.textInput.textInputDialog = inputDialog.dialogType;
+	inputDialog.textInput.filterText = "";
+	sf::Vector2f textInputPos;
+	textInputPos.x = (2 * titleText.getPosition().x + titleText.getGlobalBounds().size.x - inputDialog.textInput.size.x) / 2.0f;
+	textInputPos.y = descPos.y + descText.getGlobalBounds().size.y + elementDistance;
+	inputDialog.textInput.position = textInputPos;
+
+	float buttonDistance = (inputDialog.size.x - 2 * inputDialog.okButton.size.x) / 3.0f;
+
+	inputDialog.okButton.buttonDialog = inputDialog.dialogType;
+	sf::Vector2f okBtnPos;
+	okBtnPos.x = inputDialog.position.x + PADDING + buttonDistance;
+	okBtnPos.y = textInputPos.y + inputDialog.textInput.size.y + elementDistance;
+	inputDialog.okButton.position = okBtnPos;
+
+	inputDialog.cancelButton.buttonDialog = inputDialog.dialogType;
+	sf::Vector2f cancelBtnPos;
+	cancelBtnPos.x = okBtnPos.x + inputDialog.okButton.size.x + buttonDistance;
+	cancelBtnPos.y = okBtnPos.y;
+	inputDialog.cancelButton.position = cancelBtnPos;
+
+	// WHAT AM I EVEN DOING???!!!
+
+}
+
+void drawInputDialog(sf::RenderWindow& window, InputDialog& inputDialog)
+{
+	sf::RectangleShape borderRect(inputDialog.size);
+	borderRect.setPosition(inputDialog.position);
+	borderRect.setFillColor(sf::Color::White);
+	borderRect.setOutlineThickness(1.5f);
+	borderRect.setOutlineColor(sf::Color::Black);
+	window.draw(borderRect);
+
+	sf::Text titleText(font);
+	titleText.setString(inputDialog.title);
+	titleText.setCharacterSize(inputDialog.titleCharSize);
+	titleText.setFillColor(sf::Color::Black);
+	titleText.setPosition(inputDialog.titlePos);
+	window.draw(titleText);
+
+	sf::Text descText(font);
+	descText.setString(inputDialog.descString);
+	descText.setCharacterSize(inputDialog.descCharSize);
+	descText.setFillColor(sf::Color::Black);
+	descText.setPosition(inputDialog.descPos);
+	window.draw(descText);
+
+	drawTextInput(window, inputDialog.textInput);
+
+	drawButton(window, inputDialog.okButton);
+
+	drawButton(window, inputDialog.cancelButton);
+}
+
+void initGeneratorDialog()
+{
+	saveMazeDialog.title = "Save Maze";
+	saveMazeDialog.descString = "Enter file name to save the maze.";
+	saveMazeDialog.okButton.buttonName = "Save";
+	saveMazeDialog.cancelButton.buttonName = "Cancel";
+	saveMazeDialog.textInput.size = { 300.0f, 40.0f };
+	saveMazeDialog.dialogType = SAVE_MAZE;
+	initInputDialog(saveMazeDialog);
+
+	loadMazeDialog.title = "Load Maze";
+	loadMazeDialog.descString = "Enter file name to load the maze.";
+	loadMazeDialog.okButton.buttonName = "Load";
+	loadMazeDialog.cancelButton.buttonName = "Cancel";
+	loadMazeDialog.textInput.size = { 300.0f, 40.0f };
+	loadMazeDialog.dialogType = LOAD_MAZE;
+	initInputDialog(loadMazeDialog);
+}
+
+void inputDialogEventHandling(const sf::Vector2f& mousePosition, const std::optional<sf::Event>& event, InputDialog& inputDialog)
+{
+	if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>())
+	{
+		// left mouse button clicked
+		if (mousePressed->button == sf::Mouse::Button::Left)
+		{
+			checkTextInputClicked(mousePosition, inputDialog.textInput);
+			if (isElementClicked(mousePosition, inputDialog.cancelButton.position, inputDialog.cancelButton.size))
+			{
+				currentDialog = NONE;
+			}
+		}
+	}
+
+	if (const auto* textEntered = event->getIf<sf::Event::TextEntered>())
+	{
+		if (textEntered->unicode < 128)
+		{
+			char enterdChar = static_cast<char>(textEntered->unicode);
+
+			onTextEntered(enterdChar, inputDialog.textInput);
+		}
+	}
+}
+
 void init(sf::Font windowFont)
 {
 	initMazeGeneratorWindow(windowFont);
+	initGeneratorDialog();
 }
 
 void update()
 {
-	updateMazeGeneratorWindow();
+	if (currentPage == MAZE_GEN && currentDialog == NONE)
+		updateMazeGeneratorWindow();
 }
 
-void draw(sf::RenderWindow& window)
+void eventHandling(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
+{
+	while (const std::optional<sf::Event> event = window.pollEvent())
+	{
+		if (event->is<sf::Event::Closed>())
+			window.close();
+
+		if (currentPage == MAZE_GEN && currentDialog == NONE)
+			mazeGeneratorEventHandling(mousePosition, event);
+
+		if (currentPage == MAZE_GEN)
+		{
+			if (currentDialog == SAVE_MAZE)
+				inputDialogEventHandling(mousePosition, event, saveMazeDialog);
+			else if (currentDialog == LOAD_MAZE)
+				inputDialogEventHandling(mousePosition, event, loadMazeDialog);
+		}
+	}
+}
+
+void draw(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
 {
 	window.clear(sf::Color::White);
-	drawMazeGeneratorWindow(window);
+
+	if (currentPage == MAZE_GEN)
+		drawMazeGeneratorWindow(window, mousePosition);
 
 	// both in maze generator and path finder page
 	drawMazeWall(window, mazeSize, mazePos);
+
+	if (currentPage == MAZE_GEN)
+	{
+		if (currentDialog == SAVE_MAZE)
+			drawInputDialog(window, saveMazeDialog);
+		else if (currentDialog == LOAD_MAZE)
+			drawInputDialog(window, loadMazeDialog);
+	}
+	
+	
 }

@@ -26,9 +26,11 @@ int main()
 
 	while (window.isOpen())
 	{
+		sf::Vector2f mousePosition = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+
 		update();
-		
-		draw(window);
+		eventHandling(window, mousePosition);
+		draw(window, mousePosition);
 
 		window.display();
 	}
