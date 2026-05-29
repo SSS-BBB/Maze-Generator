@@ -2,4 +2,6 @@
 
 #include <SFML/Graphics.hpp>
 
-void windowLoop(sf::RenderWindow& window);
+void init(sf::Font windowFont);
+void update();
+void draw(sf::RenderWindow& window);
