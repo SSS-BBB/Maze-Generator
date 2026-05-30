@@ -1,5 +1,6 @@
 #include "maze.hpp"
 #include <iostream>
+#include <fstream>
 
 void initMaze(Maze& mazeObj)
 {
@@ -501,4 +502,81 @@ void updateGeneration(MazeGenerator& mazeGenerator, Maze& mazeObj)
 	mazeGenerator.cellVisited[chosenCell.y][chosenCell.x] = true;
 	mazeGenerator.visitedPos.push_back(chosenCell);
 	mazeGenerator.cellStack.push(chosenCell);
+}
+
+MazeStatus saveMaze(const Maze& mazeObj, std::string filename)
+{
+	MazeStatus saveStatus;
+	if (filename.empty())
+	{
+		saveStatus.statusType = ERROR;
+		saveStatus.statusMessage = "Filename is empty, unable to save";
+		return saveStatus;
+	}
+
+	int m = mazeObj.maze_width;
+	int n = mazeObj.maze_height;
+
+	if (m <= 0 || n <= 0)
+	{
+		saveStatus.statusType = ERROR;
+		saveStatus.statusMessage = "Invalid Cell Number, unable to save";
+		return saveStatus;
+	}
+
+	std::ofstream saveFile(filename + ".maze");
+	saveFile << "MAZE 1.0" << std::endl;
+
+	saveFile << "Maze Size" << std::endl;
+	saveFile << mazeObj.maze_width << "," << mazeObj.maze_height << std::endl;
+
+	saveFile << "Horizontal" << std::endl;
+	for (int i = 0; i < mazeObj.horizontal_walls.size(); i++)
+	{
+		int wallWidth = mazeObj.horizontal_walls[i].size();
+		for (int j = 0; j < wallWidth; j++)
+		{
+			saveFile << mazeObj.horizontal_walls[i][j];
+			if (j != wallWidth - 1)
+				saveFile << ",";
+		}
+		saveFile << std::endl;
+	}
+
+	saveFile << "Vertical" << std::endl;
+	for (int i = 0; i < mazeObj.vertical_walls.size(); i++)
+	{
+		int wallWidth = mazeObj.vertical_walls[i].size();
+		for (int j = 0; j < wallWidth; j++)
+		{
+			saveFile << mazeObj.vertical_walls[i][j];
+			if (j != wallWidth - 1)
+				saveFile << ",";
+		}
+		saveFile << std::endl;
+	}
+
+	saveFile << "END";
+
+	saveFile.close();
+	saveStatus.statusType = SUCCESSFUL;
+	saveStatus.statusMessage = "Saved " + filename + " Successfully";
+
+	return saveStatus;
+}
+
+MazeStatus loadMaze(Maze& mazeObj, std::string filename)
+{
+	MazeStatus loadStatus;
+	if (filename.empty())
+	{
+		loadStatus.statusType = ERROR;
+		loadStatus.statusMessage = "Filename is empty, unable to load";
+		return loadStatus;
+	}
+
+	loadStatus.statusType = SUCCESSFUL;
+	loadStatus.statusMessage = "Loaded " + filename + " Successfully";
+
+	return loadStatus;
 }

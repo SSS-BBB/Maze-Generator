@@ -13,8 +13,8 @@ struct CellPos
 struct Maze
 {
 	// number of cells
-	int maze_width = 10;   // m
-	int maze_height = 15;  // n
+	int maze_width = 0;   // m
+	int maze_height = 0;  // n
 
 	// true if wall exists, fall if does not
 	// at cell (i, j)
@@ -58,3 +58,6 @@ MazeStatus generateMazeInstantly(Maze& mazeObj);
 
 void startGeneration(MazeGenerator& mazeGenerator, Maze& mazeObj);
 void updateGeneration(MazeGenerator& mazeGenerator, Maze& mazeObj);
+
+MazeStatus saveMaze(const Maze& mazeObj, std::string filename);
+MazeStatus loadMaze(Maze& mazeObj, std::string filename);
