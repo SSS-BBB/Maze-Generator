@@ -358,6 +358,8 @@ void inputDialogEventHandling(const sf::Vector2f& mousePosition, const std::opti
 			checkTextInputClicked(mousePosition, inputDialog.textInput);
 			if (isElementClicked(mousePosition, inputDialog.cancelButton.position, inputDialog.cancelButton.size))
 			{
+				inputDialog.statusString = "";
+				inputDialog.statusTextColor = sf::Color::Black;
 				currentDialog = NONE;
 			}
 		}
@@ -691,7 +693,11 @@ void mazeGeneratorEventHandling(const sf::Vector2f& mousePosition, const std::op
 			char enterdChar = static_cast<char>(textEntered->unicode);
 
 			for (TextInput& textInput : mazeGenTextInputList)
+			{
+				if (enterdChar == '0' && textInput.inputString.empty())
+					continue;
 				onTextEntered(enterdChar, textInput);
+			}
 		}
 	}
 }
@@ -775,7 +781,6 @@ void initGeneratorDialog()
 	saveMazeDialog.descString = "Enter file name to save the maze.";
 	saveMazeDialog.okButton.buttonName = "Save";
 	saveMazeDialog.cancelButton.buttonName = "Cancel";
-	saveMazeDialog.textInput.inputString = "TestMaze";
 	saveMazeDialog.textInput.size = { 300.0f, 40.0f };
 	saveMazeDialog.dialogType = SAVE_MAZE;
 	initInputDialog(saveMazeDialog);
@@ -784,7 +789,6 @@ void initGeneratorDialog()
 	loadMazeDialog.descString = "Enter file name to load the maze.";
 	loadMazeDialog.okButton.buttonName = "Load";
 	loadMazeDialog.cancelButton.buttonName = "Cancel";
-	loadMazeDialog.textInput.inputString = "TestMaze";
 	loadMazeDialog.textInput.size = { 300.0f, 40.0f };
 	loadMazeDialog.dialogType = LOAD_MAZE;
 	initInputDialog(loadMazeDialog);

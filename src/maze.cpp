@@ -575,6 +575,86 @@ MazeStatus loadMaze(Maze& mazeObj, std::string filename)
 		return loadStatus;
 	}
 
+	std::ifstream file(filename + ".maze");
+	if (!file.good())
+	{
+		loadStatus.statusType = ERROR;
+		loadStatus.statusMessage = filename + " doesn't exist, unable to load";
+		file.close();
+		return loadStatus;
+	}
+
+	std::string in; 
+
+	std::getline(file, in);
+	if (in != "MAZE 1.0")
+	{
+		loadStatus.statusType = ERROR;
+		loadStatus.statusMessage = "Incorrect file version, unable to load " + filename;
+		file.close();
+		return loadStatus;
+	}
+
+	std::getline(file, in); // Maze Size
+	std::getline(file, in, ',');
+	mazeObj.maze_width = stoi(in);
+	std::getline(file, in);
+	mazeObj.maze_height = stoi(in);
+
+	int m = mazeObj.maze_width;
+	int n = mazeObj.maze_height;
+
+	std::getline(file, in); // Horizontal
+	if (!mazeObj.horizontal_walls.empty())
+	{
+		mazeObj.horizontal_walls.clear();
+	}
+
+	mazeObj.horizontal_walls.reserve(n + 1);
+
+	for (int i = 0; i < n + 1; i++)
+	{
+		std::vector<bool> row;
+		row.reserve(m);
+		for (int j = 0; j < m; j++)
+		{
+			if (j == m - 1)
+				std::getline(file, in);
+			else
+				std::getline(file, in, ',');
+
+			row.push_back(std::stoi(in));
+		}
+
+		mazeObj.horizontal_walls.push_back(row);
+	}
+
+	std::getline(file, in); // Vertical
+	if (!mazeObj.vertical_walls.empty())
+	{
+		mazeObj.vertical_walls.clear();
+	}
+	
+	mazeObj.vertical_walls.reserve(n);
+	for (int i = 0; i < n; i++)
+	{
+		std::vector<bool> row;
+		row.reserve(m + 1);
+		for (int j = 0; j < m + 1; j++)
+		{
+			if (j == m)
+				std::getline(file, in);
+			else
+				std::getline(file, in, ',');
+
+			row.push_back(std::stoi(in));
+		}
+		mazeObj.vertical_walls.push_back(row);
+	}
+
+	std::getline(file, in); // END
+
+	file.close();
 	loadStatus.statusType = SUCCESSFUL;
 	loadStatus.statusMessage = "Loaded " + filename + " Successfully";
 
