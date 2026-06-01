@@ -11,7 +11,7 @@ enum Page
 
 enum Dialog
 {
-	NONE, SAVE_MAZE, LOAD_MAZE
+	NONE, SAVE_MAZE, LOAD_MAZE, SAVE_PATH, LOAD_PATH
 };
 
 struct TextInput
@@ -82,6 +82,8 @@ std::vector<Button> mazeGenButtonList;
 MazeGenerator mazeGenerator;
 
 // Path Finding Page Variables
+InputDialog savePathDialog, loadPathDialog;
+
 std::vector<TextInput> pathFindTextInputList;
 std::vector<Button> pathFindButtonList;
 
@@ -505,7 +507,7 @@ void onLoadMazeButtonClicked()
 	currentDialog = LOAD_MAZE;
 }
 
-void checkButtonClicked(const sf::Vector2f& mousePosition, std::vector<Button>& buttonList)
+void onButtonClicked(const sf::Vector2f& mousePosition, std::vector<Button>& buttonList)
 {
 	for (Button& button : buttonList)
 	{
@@ -532,17 +534,44 @@ void checkButtonClicked(const sf::Vector2f& mousePosition, std::vector<Button>& 
 
 				else if (button.buttonName == "Path Finding")
 				{
-					// Change Page to Path Finding
-					currentDialog = NONE;
-					currentPage = PATH_FIND;
+					if (mazeGenerator.mazeStatus.statusType != PROCESSING)
+					{
+						// Change Page to Path Finding
+						currentDialog = NONE;
+						currentPage = PATH_FIND;
+					}
 				}
 			}
 
 			else if (currentPage == PATH_FIND)
 			{
+				if (button.buttonName == "Find Path")
+				{
 
+				}
+
+				else if (button.buttonName == "Save")
+				{
+					// TODO: check path finding status first
+					currentDialog = SAVE_PATH;
+				}
+
+				else if (button.buttonName == "Load")
+				{
+					// TODO: check path finding status first
+					currentDialog = LOAD_PATH;
+				}
+
+				else if (button.buttonName == "Maze Generator")
+				{
+					// TODO: check path finding status first
+					// Change Page to Maze Generator
+					currentDialog = NONE;
+					currentPage = MAZE_GEN;
+				}
 			}
 
+			std::cout << button.buttonName << " is clicked." << std::endl;
 			break;
 
 		}
@@ -668,7 +697,7 @@ void initMazeGeneratorWindow()
 
 	Button pathFindingButton;
 	pathFindingButton.buttonName = "Path Finding";
-	pathFindingButton.position = { 920.0f - 10.0f, 615.0f };
+	pathFindingButton.position = { 920.0f - 10.0f, 560.0f };
 	pathFindingButton.size = { 140.0f, 60.0f };
 	mazeGenButtonList.emplace_back(pathFindingButton);
 
@@ -694,7 +723,7 @@ void mazeGeneratorEventHandling(const sf::Vector2f& mousePosition, const std::op
 			for (TextInput& textInput : mazeGenTextInputList)
 				checkTextInputClicked(mousePosition, textInput);
 
-			checkButtonClicked(mousePosition, mazeGenButtonList);
+			onButtonClicked(mousePosition, mazeGenButtonList);
 		}
 	}
 
@@ -781,7 +810,7 @@ void drawMazeGeneratorWindow(sf::RenderWindow& window, const sf::Vector2f& mouse
 void initGeneratorDialog()
 {
 	saveMazeDialog.title = "Save Maze";
-	saveMazeDialog.descString = "Enter file name to save the maze.";
+	saveMazeDialog.descString = "Enter file name to save the maze";
 	saveMazeDialog.okButton.buttonName = "Save";
 	saveMazeDialog.cancelButton.buttonName = "Cancel";
 	saveMazeDialog.textInput.size = { 300.0f, 40.0f };
@@ -789,7 +818,7 @@ void initGeneratorDialog()
 	initInputDialog(saveMazeDialog);
 
 	loadMazeDialog.title = "Load Maze";
-	loadMazeDialog.descString = "Enter file name to load the maze.";
+	loadMazeDialog.descString = "Enter file name to load the maze";
 	loadMazeDialog.okButton.buttonName = "Load";
 	loadMazeDialog.cancelButton.buttonName = "Cancel";
 	loadMazeDialog.textInput.size = { 300.0f, 40.0f };
@@ -830,9 +859,89 @@ void loadMazeDialogEventHandling(const sf::Vector2f& mousePosition, const std::o
 }
 
 // Path Finding Page
+void initPathFindDialog()
+{
+	savePathDialog.title = "Save Path";
+	savePathDialog.descString = "Enter file name to save the path";
+	savePathDialog.okButton.buttonName = "Save";
+	savePathDialog.cancelButton.buttonName = "Cancel";
+	savePathDialog.textInput.size = { 300.0f, 40.0f };
+	savePathDialog.dialogType = SAVE_PATH;
+	initInputDialog(savePathDialog);
+
+	loadPathDialog.title = "Load Path";
+	loadPathDialog.descString = "Enter file name to load the path";
+	loadPathDialog.okButton.buttonName = "Load";
+	loadPathDialog.cancelButton.buttonName = "Cancel";
+	loadPathDialog.textInput.size = { 300.0f, 40.0f };
+	loadPathDialog.dialogType = LOAD_PATH;
+	initInputDialog(loadPathDialog);
+}
+
 void initPathFindingWindow()
 {
+	// Text Input
+	// default size = (150, 40)
+	TextInput x1TextInput;
+	x1TextInput.textInputName = "X1";
+	x1TextInput.textInputPage = PATH_FIND;
+	x1TextInput.position = { 845.0f, 165.0f };
+	x1TextInput.size.x = 100.0f;
+	pathFindTextInputList.emplace_back(x1TextInput);
 
+	TextInput y1TextInput;
+	y1TextInput.textInputName = "Y1";
+	y1TextInput.textInputPage = PATH_FIND;
+	y1TextInput.position = { 995.0f, 165.0f };
+	y1TextInput.size.x = 100.0f;
+	pathFindTextInputList.emplace_back(y1TextInput);
+
+	TextInput x2TextInput;
+	x2TextInput.textInputName = "X2";
+	x2TextInput.textInputPage = PATH_FIND;
+	x2TextInput.position = { 845.0f, 235.0f };
+	x2TextInput.size.x = 100.0f;
+	pathFindTextInputList.emplace_back(x2TextInput);
+
+	TextInput y2TextInput;
+	y2TextInput.textInputName = "Y2";
+	y2TextInput.textInputPage = PATH_FIND;
+	y2TextInput.position = { 995.0f, 235.0f };
+	y2TextInput.size.x = 100.0f;
+	pathFindTextInputList.emplace_back(y2TextInput);
+
+	TextInput delayTextInput;
+	delayTextInput.textInputName = "Delay";
+	delayTextInput.textInputPage = PATH_FIND;
+	delayTextInput.position = { 891.5f, 352.0f };
+	pathFindTextInputList.emplace_back(delayTextInput);
+
+	// Button
+	// default size = (120, 60)
+	Button findPathButton;
+	findPathButton.buttonName = "Find Path";
+	findPathButton.buttonPage = PATH_FIND;
+	findPathButton.position = { 906.5f, 412.0f };
+	pathFindButtonList.emplace_back(findPathButton);
+
+	Button mazeGenButton;
+	mazeGenButton.buttonName = "Maze Generator";
+	mazeGenButton.buttonPage = PATH_FIND;
+	mazeGenButton.size.x = 175.0f;
+	mazeGenButton.position = { 879.0f, 560.0f };
+	pathFindButtonList.emplace_back(mazeGenButton);
+
+	Button saveButton;
+	saveButton.buttonName = "Save";
+	saveButton.buttonPage = PATH_FIND;
+	saveButton.position = { 155.0f, 590.0f };
+	pathFindButtonList.emplace_back(saveButton);
+
+	Button loadButton;
+	loadButton.buttonName = "Load";
+	loadButton.buttonPage = PATH_FIND;
+	loadButton.position = { 155.0f + 200.0f, 590.0f };
+	pathFindButtonList.emplace_back(loadButton);
 }
 
 void updatePathFindingWindow()
@@ -848,12 +957,12 @@ void pathFindingEventHandling(const sf::Vector2f& mousePosition, const std::opti
 		// left mouse button clicked
 		if (mousePressed->button == sf::Mouse::Button::Left)
 		{
-			/*
-			for (TextInput& textInput : mazeGenTextInputList)
+			
+			for (TextInput& textInput : pathFindTextInputList)
 				checkTextInputClicked(mousePosition, textInput);
 
-			checkButtonClicked(mousePosition, mazeGenButtonList);
-			*/
+			onButtonClicked(mousePosition, pathFindButtonList);
+			
 		}
 	}
 
@@ -864,14 +973,11 @@ void pathFindingEventHandling(const sf::Vector2f& mousePosition, const std::opti
 		{
 			char enterdChar = static_cast<char>(textEntered->unicode);
 
-			/*
-			for (TextInput& textInput : mazeGenTextInputList)
+			for (TextInput& textInput : pathFindTextInputList)
 			{
-				if (enterdChar == '0' && textInput.inputString.empty())
-					continue;
 				onTextEntered(enterdChar, textInput);
 			}
-			*/
+			
 		}
 	}
 }
@@ -886,33 +992,78 @@ void drawPathFindingWindow(sf::RenderWindow& window, const sf::Vector2f& mousePo
 	titleText.setPosition({ 280.0f, 20.0f });
 	window.draw(titleText);
 
+	// X Text
+	sf::Text xText(font);
+	xText.setString("X");
+	xText.setCharacterSize(22);
+	xText.setFillColor(sf::Color::Black);
+	xText.setPosition({ 884.0f, 128.0f });
+	window.draw(xText);
+
+	// Y Text
+	sf::Text yText(font);
+	yText.setString("Y");
+	yText.setCharacterSize(22);
+	yText.setFillColor(sf::Color::Black);
+	yText.setPosition({ 1034.0f, 128.0f });
+	window.draw(yText);
+
 	// Cell A Text
 	sf::Text cellAText(font);
 	cellAText.setString("Cell A");
 	cellAText.setCharacterSize(22);
 	cellAText.setFillColor(sf::Color::Black);
-	cellAText.setPosition({ 745.0f, 170.0f });
+	cellAText.setPosition({ 745.0f, 174.0f });
 	window.draw(cellAText);
 
 	// Cell B Text
-	/*
 	sf::Text cellBText(font);
 	cellBText.setString("Cell B");
 	cellBText.setCharacterSize(22);
 	cellBText.setFillColor(sf::Color::Black);
-	cellBText.setPosition({ 745.0f, mousePosition.y });
+	cellBText.setPosition({ 745.0f, 244.0f });
 	window.draw(cellBText);
-	*/
+
+	// Delay Text
+	sf::Text delayText(font);
+	delayText.setString("Delay");
+	delayText.setCharacterSize(22);
+	delayText.setFillColor(sf::Color::Black);
+	delayText.setPosition({ 940.0f, 310.0f });
+	window.draw(delayText);
+
+	// Path Finding Status Text
+	sf::Text pathFindStatText(font);
+	pathFindStatText.setString("Path Found in 1.87 ms");
+	pathFindStatText.setCharacterSize(20);
+	sf::Color pathFindStatColor = sf::Color::Green;
+	pathFindStatText.setFillColor(pathFindStatColor);
+	float delayTextWidth = delayText.getGlobalBounds().size.x;
+	float statTextWidth = pathFindStatText.getGlobalBounds().size.x;
+	float delayTextXPos = delayText.getPosition().x;
+	float statTextXPos = (2 * delayTextXPos + delayTextWidth - statTextWidth) / 2.0f;
+	pathFindStatText.setPosition({ statTextXPos, 500.0f });
+	window.draw(pathFindStatText);
+	
+
+	// draw text inputs and buttons
+	for (TextInput& textInput : pathFindTextInputList)
+		drawTextInput(window, textInput);
+	for (Button& button : pathFindButtonList)
+		drawButton(window, button);
+
 }
 
 // Main - functions called by main
 void init(sf::Font windowFont)
 {
 	font = windowFont;
+
 	initMazeGeneratorWindow();
 	initGeneratorDialog();
 
 	initPathFindingWindow();
+	initPathFindDialog();
 
 	loadMaze(mazeObj, "TestMaze");
 	currentPage = PATH_FIND;
@@ -934,24 +1085,42 @@ void eventHandling(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
 		if (event->is<sf::Event::Closed>())
 			window.close();
 
-		if (currentPage == MAZE_GEN && currentDialog == NONE)
-			mazeGeneratorEventHandling(mousePosition, event);
-
-		if (currentPage == PATH_FIND && currentDialog == NONE)
-			pathFindingEventHandling(mousePosition, event);
-
-		if (currentPage == MAZE_GEN)
+		if (currentDialog == NONE)
 		{
-			if (currentDialog == SAVE_MAZE)
-			{
-				inputDialogEventHandling(mousePosition, event, saveMazeDialog);
-				saveMazeDialogEventHandling(mousePosition, event);
+			if (currentPage == MAZE_GEN)
+				mazeGeneratorEventHandling(mousePosition, event);
 
-			}
-			else if (currentDialog == LOAD_MAZE)
+			else if (currentPage == PATH_FIND)
+				pathFindingEventHandling(mousePosition, event);
+		}
+		
+		else
+		{
+			if (currentPage == MAZE_GEN)
 			{
-				inputDialogEventHandling(mousePosition, event, loadMazeDialog);
-				loadMazeDialogEventHandling(mousePosition, event);
+				if (currentDialog == SAVE_MAZE)
+				{
+					inputDialogEventHandling(mousePosition, event, saveMazeDialog);
+					saveMazeDialogEventHandling(mousePosition, event);
+
+				}
+				else if (currentDialog == LOAD_MAZE)
+				{
+					inputDialogEventHandling(mousePosition, event, loadMazeDialog);
+					loadMazeDialogEventHandling(mousePosition, event);
+				}
+			}
+
+			else if (currentPage == PATH_FIND)
+			{
+				if (currentDialog == SAVE_PATH)
+				{
+					inputDialogEventHandling(mousePosition, event, savePathDialog);
+				}
+				else if (currentDialog == LOAD_PATH)
+				{
+					inputDialogEventHandling(mousePosition, event, loadPathDialog);
+				}
 			}
 		}
 	}
@@ -985,5 +1154,13 @@ void draw(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
 			drawInputDialog(window, saveMazeDialog);
 		else if (currentDialog == LOAD_MAZE)
 			drawInputDialog(window, loadMazeDialog);
+	}
+
+	else if (currentPage == PATH_FIND)
+	{
+		if (currentDialog == SAVE_PATH)
+			drawInputDialog(window, savePathDialog);
+		else if (currentDialog == LOAD_PATH)
+			drawInputDialog(window, loadPathDialog);
 	}
 }
