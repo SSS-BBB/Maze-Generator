@@ -73,7 +73,7 @@ Maze mazeObj;
 sf::Vector2f mazeSize = { 650.0f, 500.0f };
 sf::Vector2f mazePos = { 40.0f, 80.0f };
 
-// Maze Generator Page Variable
+// Maze Generator Page Variables
 InputDialog saveMazeDialog, loadMazeDialog;
 
 std::vector<TextInput> mazeGenTextInputList;
@@ -81,6 +81,9 @@ std::vector<Button> mazeGenButtonList;
 
 MazeGenerator mazeGenerator;
 
+// Path Finding Page Variables
+std::vector<TextInput> pathFindTextInputList;
+std::vector<Button> pathFindButtonList;
 
 // General Functions - used in both pages
 void drawTextInput(sf::RenderWindow& window, TextInput& textInput)
@@ -510,7 +513,7 @@ void checkButtonClicked(const sf::Vector2f& mousePosition, std::vector<Button>& 
 		if (isElementClicked(mousePosition, button.position, button.size))
 		{
 			// maze generation page
-			if (button.buttonPage == MAZE_GEN)
+			if (currentPage == MAZE_GEN)
 			{
 				if (button.buttonName == "Generate")
 				{
@@ -526,6 +529,18 @@ void checkButtonClicked(const sf::Vector2f& mousePosition, std::vector<Button>& 
 				{
 					onLoadMazeButtonClicked();
 				}
+
+				else if (button.buttonName == "Path Finding")
+				{
+					// Change Page to Path Finding
+					currentDialog = NONE;
+					currentPage = PATH_FIND;
+				}
+			}
+
+			else if (currentPage == PATH_FIND)
+			{
+
 			}
 
 			break;
@@ -628,10 +643,8 @@ bool updateMazeGeneratorWindow()
 	return false;
 }
 
-void initMazeGeneratorWindow(sf::Font windowFont)
+void initMazeGeneratorWindow()
 {
-	font = windowFont;
-
 	// text input and button struct
 	TextInput widthTextInput;
 	widthTextInput.textInputName = "Width";
@@ -704,16 +717,6 @@ void mazeGeneratorEventHandling(const sf::Vector2f& mousePosition, const std::op
 
 void drawMazeGeneratorWindow(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
 {
-	// Mouse Position Text
-	sf::Text mousePosText(font);
-	mousePosText.setString("Mouse Position: (" +
-		std::to_string(mousePosition.x) + "," +
-		std::to_string(mousePosition.y) + ")");
-	mousePosText.setCharacterSize(16);
-	mousePosText.setFillColor(sf::Color::Black);
-	mousePosText.setPosition({ 16.0, 680.0 });
-	window.draw(mousePosText);
-
 	// Maze Generator Title
 	sf::Text titleText(font);
 	titleText.setString("Maze Generator");
@@ -826,17 +829,102 @@ void loadMazeDialogEventHandling(const sf::Vector2f& mousePosition, const std::o
 	}
 }
 
+// Path Finding Page
+void initPathFindingWindow()
+{
+
+}
+
+void updatePathFindingWindow()
+{
+
+}
+
+void pathFindingEventHandling(const sf::Vector2f& mousePosition, const std::optional<sf::Event>& event)
+{
+	// mouse clicked
+	if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>())
+	{
+		// left mouse button clicked
+		if (mousePressed->button == sf::Mouse::Button::Left)
+		{
+			/*
+			for (TextInput& textInput : mazeGenTextInputList)
+				checkTextInputClicked(mousePosition, textInput);
+
+			checkButtonClicked(mousePosition, mazeGenButtonList);
+			*/
+		}
+	}
+
+	// user typing
+	if (const auto* textEntered = event->getIf<sf::Event::TextEntered>())
+	{
+		if (textEntered->unicode < 128)
+		{
+			char enterdChar = static_cast<char>(textEntered->unicode);
+
+			/*
+			for (TextInput& textInput : mazeGenTextInputList)
+			{
+				if (enterdChar == '0' && textInput.inputString.empty())
+					continue;
+				onTextEntered(enterdChar, textInput);
+			}
+			*/
+		}
+	}
+}
+
+void drawPathFindingWindow(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
+{
+	// Path Finding Title
+	sf::Text titleText(font);
+	titleText.setString("Path Finding");
+	titleText.setCharacterSize(30);
+	titleText.setFillColor(sf::Color::Black);
+	titleText.setPosition({ 280.0f, 20.0f });
+	window.draw(titleText);
+
+	// Cell A Text
+	sf::Text cellAText(font);
+	cellAText.setString("Cell A");
+	cellAText.setCharacterSize(22);
+	cellAText.setFillColor(sf::Color::Black);
+	cellAText.setPosition({ 745.0f, 170.0f });
+	window.draw(cellAText);
+
+	// Cell B Text
+	/*
+	sf::Text cellBText(font);
+	cellBText.setString("Cell B");
+	cellBText.setCharacterSize(22);
+	cellBText.setFillColor(sf::Color::Black);
+	cellBText.setPosition({ 745.0f, mousePosition.y });
+	window.draw(cellBText);
+	*/
+}
+
 // Main - functions called by main
 void init(sf::Font windowFont)
 {
-	initMazeGeneratorWindow(windowFont);
+	font = windowFont;
+	initMazeGeneratorWindow();
 	initGeneratorDialog();
+
+	initPathFindingWindow();
+
+	loadMaze(mazeObj, "TestMaze");
+	currentPage = PATH_FIND;
 }
 
 void update()
 {
 	if (currentPage == MAZE_GEN && currentDialog == NONE)
 		updateMazeGeneratorWindow();
+
+	if (currentPage == PATH_FIND && currentDialog == NONE)
+		updatePathFindingWindow();
 }
 
 void eventHandling(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
@@ -848,6 +936,9 @@ void eventHandling(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
 
 		if (currentPage == MAZE_GEN && currentDialog == NONE)
 			mazeGeneratorEventHandling(mousePosition, event);
+
+		if (currentPage == PATH_FIND && currentDialog == NONE)
+			pathFindingEventHandling(mousePosition, event);
 
 		if (currentPage == MAZE_GEN)
 		{
@@ -872,9 +963,21 @@ void draw(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
 
 	if (currentPage == MAZE_GEN)
 		drawMazeGeneratorWindow(window, mousePosition);
+	else if (currentPage == PATH_FIND)
+		drawPathFindingWindow(window, mousePosition);
 
 	// both in maze generator and path finder page
 	drawMazeWall(window, mazeSize, mazePos);
+
+	// Mouse Position Text
+	sf::Text mousePosText(font);
+	mousePosText.setString("Mouse Position: (" +
+		std::to_string(mousePosition.x) + "," +
+		std::to_string(mousePosition.y) + ")");
+	mousePosText.setCharacterSize(16);
+	mousePosText.setFillColor(sf::Color::Black);
+	mousePosText.setPosition({ 16.0, 680.0 });
+	window.draw(mousePosText);
 
 	if (currentPage == MAZE_GEN)
 	{
