@@ -3,6 +3,7 @@
 #include <functional>
 #include "render.hpp"
 #include "maze.hpp"
+#include "path_finding.hpp"
 
 enum Page
 {
@@ -86,6 +87,8 @@ InputDialog savePathDialog, loadPathDialog;
 
 std::vector<TextInput> pathFindTextInputList;
 std::vector<Button> pathFindButtonList;
+
+CellPos selectedPathFindingCell[2] = { {-1, -1}, {-1, -1} }; // selected cell to find path from cell a to cell b
 
 // General Functions - used in both pages
 void drawTextInput(sf::RenderWindow& window, TextInput& textInput)
@@ -419,6 +422,27 @@ void setStatusInDialog(InputDialog& inputDialog, MazeStatus status)
 	inputDialog.statusPos.x = (2 * inputDialog.textInput.position.x + inputDialog.textInput.size.x - statusText.getGlobalBounds().size.x) / 2.0f;
 }
 
+sf::Vector2f getWindowPosFromCellPos(CellPos cellPos)
+{
+	int m = mazeObj.maze_width;
+	int n = mazeObj.maze_height;
+
+	if (m <= 0 || n <= 0)
+	{
+		return { -1.0f, -1.0f };
+	}
+
+	float x0 = mazePos.x;
+	float y0 = mazePos.y;
+	float r1 = mazeSize.x / m; // horizontal wall length
+	float r2 = mazeSize.y / n; // vertical wall length
+
+	int x = cellPos.x;
+	int y = cellPos.y;
+
+	return { x0 + r1*x, y0 + r2*y };
+}
+
 // Maze Generator Functions
 void onGenerateButtonClicked()
 {
@@ -539,6 +563,8 @@ void onButtonClicked(const sf::Vector2f& mousePosition, std::vector<Button>& but
 						// Change Page to Path Finding
 						currentDialog = NONE;
 						currentPage = PATH_FIND;
+						selectedPathFindingCell[0] = { -1, -1 };
+						selectedPathFindingCell[1] = { -1, -1 };
 					}
 				}
 			}
@@ -568,6 +594,8 @@ void onButtonClicked(const sf::Vector2f& mousePosition, std::vector<Button>& but
 					// Change Page to Maze Generator
 					currentDialog = NONE;
 					currentPage = MAZE_GEN;
+					selectedPathFindingCell[0] = { -1, -1 };
+					selectedPathFindingCell[1] = { -1, -1 };
 				}
 			}
 
@@ -859,6 +887,33 @@ void loadMazeDialogEventHandling(const sf::Vector2f& mousePosition, const std::o
 }
 
 // Path Finding Page
+CellPos getMazePosFromWindowPos(sf::Vector2f windowPos)
+{
+	int m = mazeObj.maze_width;
+	int n = mazeObj.maze_height;
+
+	if (m <= 0 || n <= 0)
+	{
+		std::cerr << "Invalid Cell Number. Unable to get maze position" << std::endl;
+		return { -1, -1 };
+	}
+
+	float x0 = mazePos.x;
+	float y0 = mazePos.y;
+	float r1 = mazeSize.x / m; // horizontal wall length
+	float r2 = mazeSize.y / n; // vertical wall length
+
+	CellPos mazePos;
+	mazePos.x = (windowPos.x - x0) / r1;
+	mazePos.y = (windowPos.y - y0) / r2;
+
+	// Invalid Cell
+	if (mazePos.x < 0 || mazePos.x >= m || mazePos.y < 0 || mazePos.y >= n)
+		return { -1, -1 };
+
+	return mazePos;
+}
+
 void initPathFindDialog()
 {
 	savePathDialog.title = "Save Path";
@@ -962,6 +1017,29 @@ void pathFindingEventHandling(const sf::Vector2f& mousePosition, const std::opti
 				checkTextInputClicked(mousePosition, textInput);
 
 			onButtonClicked(mousePosition, pathFindButtonList);
+
+			if (isElementClicked(mousePosition, mazePos, mazeSize))
+			{
+				// maze clicked
+				CellPos mazePos = getMazePosFromWindowPos(mousePosition);
+				if (mazePos.x >= 0 && mazePos.y >= 0)
+				{
+					if (selectedPathFindingCell[0].x < 0 || selectedPathFindingCell[0].y < 0)
+					{
+						selectedPathFindingCell[0] = mazePos;
+						pathFindTextInputList[0].inputString = std::to_string(mazePos.x);
+						pathFindTextInputList[1].inputString = std::to_string(mazePos.y);
+
+					}
+					else if (selectedPathFindingCell[1].x < 0 || selectedPathFindingCell[1].y < 0)
+					{
+						selectedPathFindingCell[1] = mazePos;
+						pathFindTextInputList[2].inputString = std::to_string(mazePos.x);
+						pathFindTextInputList[3].inputString = std::to_string(mazePos.y);
+					}
+				
+				}
+			}
 			
 		}
 	}
@@ -976,6 +1054,39 @@ void pathFindingEventHandling(const sf::Vector2f& mousePosition, const std::opti
 			for (TextInput& textInput : pathFindTextInputList)
 			{
 				onTextEntered(enterdChar, textInput);
+
+				// update selected cell position
+				if (textInput.textInputName == "X1")
+				{
+					if (textInput.inputString.empty())
+						selectedPathFindingCell[0].x = -1;
+					else
+						selectedPathFindingCell[0].x = stoi(textInput.inputString);
+				}
+
+				else if (textInput.textInputName == "Y1")
+				{
+					if (textInput.inputString.empty())
+						selectedPathFindingCell[0].y = -1;
+					else
+						selectedPathFindingCell[0].y = stoi(textInput.inputString);
+				}
+
+				if (textInput.textInputName == "X2")
+				{
+					if (textInput.inputString.empty())
+						selectedPathFindingCell[1].x = -1;
+					else
+						selectedPathFindingCell[1].x = stoi(textInput.inputString);
+				}
+
+				else if (textInput.textInputName == "Y2")
+				{
+					if (textInput.inputString.empty())
+						selectedPathFindingCell[1].y = -1;
+					else
+						selectedPathFindingCell[1].y = stoi(textInput.inputString);
+				}
 			}
 			
 		}
@@ -1044,6 +1155,39 @@ void drawPathFindingWindow(sf::RenderWindow& window, const sf::Vector2f& mousePo
 	float statTextXPos = (2 * delayTextXPos + delayTextWidth - statTextWidth) / 2.0f;
 	pathFindStatText.setPosition({ statTextXPos, 500.0f });
 	window.draw(pathFindStatText);
+	
+	// draw cell a and cell b points
+	if (mazeObj.maze_width > 0 && mazeObj.maze_height > 0)
+	{
+		const float PADDING = 2.0f;
+
+		float radius = std::min(mazeSize.x / mazeObj.maze_width, mazeSize.y / mazeObj.maze_height);
+		radius /= 2;
+		radius -= PADDING;
+
+		if (selectedPathFindingCell[0].x >= 0 && selectedPathFindingCell[0].y >= 0)
+		{
+			sf::CircleShape cellAPointCircle(radius);
+			cellAPointCircle.setFillColor(sf::Color::Green);
+			sf::Vector2f circlePos = getWindowPosFromCellPos(selectedPathFindingCell[0]);
+			circlePos.x += PADDING;
+			circlePos.y += PADDING;
+			cellAPointCircle.setPosition(circlePos);
+			window.draw(cellAPointCircle);
+		}
+
+		if (selectedPathFindingCell[1].x >= 0 && selectedPathFindingCell[1].y >= 0)
+		{
+			sf::CircleShape cellBPointCircle(radius);
+			cellBPointCircle.setFillColor(sf::Color::Red);
+			sf::Vector2f circlePos = getWindowPosFromCellPos(selectedPathFindingCell[1]);
+			circlePos.x += PADDING;
+			circlePos.y += PADDING;
+			cellBPointCircle.setPosition(circlePos);
+			window.draw(cellBPointCircle);
+		}
+	}
+	
 	
 
 	// draw text inputs and buttons
