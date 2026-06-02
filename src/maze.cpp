@@ -129,54 +129,10 @@ bool validCell(const Maze& mazeObj, CellPos pos)
 	int m = mazeObj.maze_width;
 	int n = mazeObj.maze_height;
 
+	if (m < 0 || n < 0)
+		return false;
+
 	return !(pos.x < 0 || pos.x >= m || pos.y < 0 || pos.y >= n);
-}
-
-bool getLeftWall(const Maze& mazeObj, CellPos pos)
-{
-
-	if (!validCell(mazeObj, pos))
-	{
-		std::cerr << "Invalid cell position, unable to getLeftWall." << std::endl;
-		return false;
-	}
-
-	return mazeObj.vertical_walls[pos.y][pos.x];
-}
-
-bool getRightWall(const Maze& mazeObj, CellPos pos)
-{
-
-	if (!validCell(mazeObj, pos))
-	{
-		std::cerr << "Invalid cell position, unable to getRightWall." << std::endl;
-		return false;
-	}
-
-	return mazeObj.vertical_walls[pos.y][pos.x + 1];
-}
-
-bool getTopWall(const Maze& mazeObj, CellPos pos)
-{
-
-	if (!validCell(mazeObj, pos))
-	{
-		std::cerr << "Invalid cell position, unable to getTopWall." << std::endl;
-		return false;
-	}
-
-	return mazeObj.horizontal_walls[pos.y][pos.x];
-}
-
-bool getBottomWall(const Maze& mazeObj, CellPos pos)
-{
-	if (!validCell(mazeObj, pos))
-	{
-		std::cerr << "Invalid cell position, unable to getBottomWall." << std::endl;
-		return false;
-	}
-
-	return mazeObj.horizontal_walls[pos.y + 1][pos.x];
 }
 
 void setLeftWall(Maze& mazeObj, CellPos pos, bool wallExists)

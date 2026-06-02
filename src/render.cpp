@@ -90,6 +90,9 @@ std::vector<Button> pathFindButtonList;
 
 CellPos selectedPathFindingCell[2] = { {-1, -1}, {-1, -1} }; // selected cell to find path from cell a to cell b
 
+Path path;
+PathFinder pathFinder;
+
 // General Functions - used in both pages
 void drawTextInput(sf::RenderWindow& window, TextInput& textInput)
 {
@@ -401,6 +404,9 @@ sf::Color getStatusColor(MazeStatus status)
 	case SUCCESSFUL:
 		color = sf::Color::Green;
 		break;
+	case FAILED:
+		color = sf::Color::Yellow;
+		break;
 	default:
 		color = sf::Color::Black;
 		break;
@@ -441,6 +447,27 @@ sf::Vector2f getWindowPosFromCellPos(CellPos cellPos)
 	int y = cellPos.y;
 
 	return { x0 + r1*x, y0 + r2*y };
+}
+
+sf::Vector2f getMidWindowPosFromCellPos(CellPos cellPos)
+{
+	int m = mazeObj.maze_width;
+	int n = mazeObj.maze_height;
+
+	if (m <= 0 || n <= 0)
+	{
+		return { -1.0f, -1.0f };
+	}
+
+	float x0 = mazePos.x;
+	float y0 = mazePos.y;
+	float r1 = mazeSize.x / m; // horizontal wall length
+	float r2 = mazeSize.y / n; // vertical wall length
+
+	int x = cellPos.x;
+	int y = cellPos.y;
+
+	return { x0 + r1 * x + r1 / 2.0f, y0 + r2 * y + r2 / 2.0f };
 }
 
 // Maze Generator Functions
@@ -563,8 +590,6 @@ void onButtonClicked(const sf::Vector2f& mousePosition, std::vector<Button>& but
 						// Change Page to Path Finding
 						currentDialog = NONE;
 						currentPage = PATH_FIND;
-						selectedPathFindingCell[0] = { -1, -1 };
-						selectedPathFindingCell[1] = { -1, -1 };
 					}
 				}
 			}
@@ -573,7 +598,9 @@ void onButtonClicked(const sf::Vector2f& mousePosition, std::vector<Button>& but
 			{
 				if (button.buttonName == "Find Path")
 				{
-
+					pathFinder.startCell = selectedPathFindingCell[0];
+					pathFinder.endCell = selectedPathFindingCell[1];
+					pathFinder.status = findShortPathInstantly(mazeObj, path, selectedPathFindingCell[0], selectedPathFindingCell[1]);
 				}
 
 				else if (button.buttonName == "Save")
@@ -596,6 +623,10 @@ void onButtonClicked(const sf::Vector2f& mousePosition, std::vector<Button>& but
 					currentPage = MAZE_GEN;
 					selectedPathFindingCell[0] = { -1, -1 };
 					selectedPathFindingCell[1] = { -1, -1 };
+					pathFinder.status.statusType = IDLE;
+					pathFinder.status.statusMessage = "";
+					pathFinder.startCell = selectedPathFindingCell[0];
+					pathFinder.endCell = selectedPathFindingCell[1];
 				}
 			}
 
@@ -1061,7 +1092,17 @@ void pathFindingEventHandling(const sf::Vector2f& mousePosition, const std::opti
 					if (textInput.inputString.empty())
 						selectedPathFindingCell[0].x = -1;
 					else
-						selectedPathFindingCell[0].x = stoi(textInput.inputString);
+					{
+						int x = stoi(textInput.inputString);
+						if (validCell(mazeObj, { x, 0 }))
+						{
+							selectedPathFindingCell[0].x = x;
+						}
+						else
+						{
+							selectedPathFindingCell[0].x = -1;
+						}
+					}
 				}
 
 				else if (textInput.textInputName == "Y1")
@@ -1069,7 +1110,17 @@ void pathFindingEventHandling(const sf::Vector2f& mousePosition, const std::opti
 					if (textInput.inputString.empty())
 						selectedPathFindingCell[0].y = -1;
 					else
-						selectedPathFindingCell[0].y = stoi(textInput.inputString);
+					{
+						int y = stoi(textInput.inputString);
+						if (validCell(mazeObj, { 0, y }))
+						{
+							selectedPathFindingCell[0].y = y;
+						}
+						else
+						{
+							selectedPathFindingCell[0].y = -1;
+						}
+					}
 				}
 
 				if (textInput.textInputName == "X2")
@@ -1077,7 +1128,17 @@ void pathFindingEventHandling(const sf::Vector2f& mousePosition, const std::opti
 					if (textInput.inputString.empty())
 						selectedPathFindingCell[1].x = -1;
 					else
-						selectedPathFindingCell[1].x = stoi(textInput.inputString);
+					{
+						int x = stoi(textInput.inputString);
+						if (validCell(mazeObj, { x, 0 }))
+						{
+							selectedPathFindingCell[1].x = x;
+						}
+						else
+						{
+							selectedPathFindingCell[1].x = -1;
+						}
+					}
 				}
 
 				else if (textInput.textInputName == "Y2")
@@ -1085,12 +1146,60 @@ void pathFindingEventHandling(const sf::Vector2f& mousePosition, const std::opti
 					if (textInput.inputString.empty())
 						selectedPathFindingCell[1].y = -1;
 					else
-						selectedPathFindingCell[1].y = stoi(textInput.inputString);
+					{
+						int y = stoi(textInput.inputString);
+						if (validCell(mazeObj, { 0, y }))
+						{
+							selectedPathFindingCell[1].y = y;
+						}
+						else
+						{
+							selectedPathFindingCell[1].y = -1;
+						}
+					}
 				}
 			}
 			
 		}
 	}
+}
+
+void drawMazePath(sf::RenderWindow& window)
+{
+	if (pathFinder.status.statusType != SUCCESSFUL)
+		return;
+
+	int m = mazeObj.maze_width;
+	int n = mazeObj.maze_height;
+
+	if (m <= 0 || n <= 0)
+	{
+		std::cerr << "Maze Width or Height is less than or equals to 0, unable to draw maze path." << std::endl;
+		return;
+	}
+
+	float cellWidth = mazeSize.x / m;
+	float cellHeight = mazeSize.y / n;
+
+	CellPos currentCell = pathFinder.endCell;
+	CellPos nextCell = path.parents[currentCell.y][currentCell.x];
+	sf::VertexArray cellVertexArray(sf::PrimitiveType::Lines);
+	while (nextCell.x >= 0 && nextCell.y >= 0)
+	{
+		// draw line
+		sf::Vector2f p1 = getMidWindowPosFromCellPos(currentCell);
+		sf::Vector2f p2 = getMidWindowPosFromCellPos(nextCell);
+		sf::Color color = sf::Color::Blue;
+
+		cellVertexArray.append(sf::Vertex(p1, color));
+		cellVertexArray.append(sf::Vertex(p2, color));
+
+		// update cell
+		currentCell = nextCell;
+		nextCell = path.parents[currentCell.y][currentCell.x];
+	}
+
+	window.draw(cellVertexArray);
 }
 
 void drawPathFindingWindow(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
@@ -1145,9 +1254,9 @@ void drawPathFindingWindow(sf::RenderWindow& window, const sf::Vector2f& mousePo
 
 	// Path Finding Status Text
 	sf::Text pathFindStatText(font);
-	pathFindStatText.setString("Path Found in 1.87 ms");
+	pathFindStatText.setString(pathFinder.status.statusMessage);
 	pathFindStatText.setCharacterSize(20);
-	sf::Color pathFindStatColor = sf::Color::Green;
+	sf::Color pathFindStatColor = getStatusColor(pathFinder.status);
 	pathFindStatText.setFillColor(pathFindStatColor);
 	float delayTextWidth = delayText.getGlobalBounds().size.x;
 	float statTextWidth = pathFindStatText.getGlobalBounds().size.x;
@@ -1156,6 +1265,8 @@ void drawPathFindingWindow(sf::RenderWindow& window, const sf::Vector2f& mousePo
 	pathFindStatText.setPosition({ statTextXPos, 500.0f });
 	window.draw(pathFindStatText);
 	
+	drawMazePath(window);
+
 	// draw cell a and cell b points
 	if (mazeObj.maze_width > 0 && mazeObj.maze_height > 0)
 	{

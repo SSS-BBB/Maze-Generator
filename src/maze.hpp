@@ -8,6 +8,10 @@ struct CellPos
 {
 	int x = 0;
 	int y = 0;
+
+	bool operator==(const CellPos& other) const {
+		return (x == other.x && y == other.y);
+	}
 };
 
 struct Maze
@@ -28,7 +32,7 @@ struct Maze
 
 enum StatusType
 {
-	IDLE, ERROR, PROCESSING, SUCCESSFUL
+	IDLE, ERROR, PROCESSING, SUCCESSFUL, FAILED
 };
 
 struct MazeStatus
@@ -50,6 +54,9 @@ struct MazeGenerator
 	std::vector<CellPos> visitedPos;
 	std::vector<CellPos> deadEndPos;
 };
+
+bool validCell(const Maze& mazeObj, CellPos pos);
+std::vector<CellPos> getNeighbours(const Maze& mazeObj, CellPos cell);
 
 void initMaze(Maze& mazeObj);
 
