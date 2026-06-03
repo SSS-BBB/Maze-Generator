@@ -264,6 +264,24 @@ void drawMazeWall(sf::RenderWindow& window, sf::Vector2f mazeRenderSize, sf::Vec
 	window.draw(walls);
 }
 
+void drawRectAtCell(sf::VertexArray& cellVertexArray, sf::Vector2f topLeftPos, float cellWidth, float cellHeight, CellPos cell, sf::Color color)
+{
+	sf::Vector2f p1 = { topLeftPos.x + cellWidth * cell.x, topLeftPos.y + cellHeight * cell.y };
+	sf::Vector2f p2 = { p1.x + cellWidth, p1.y };
+	sf::Vector2f p3 = { p1.x, p1.y + cellHeight };
+	sf::Vector2f p4 = { p1.x + cellWidth, p1.y + cellHeight };
+
+	// first triangle
+	cellVertexArray.append(sf::Vertex(p1, color));
+	cellVertexArray.append(sf::Vertex(p2, color));
+	cellVertexArray.append(sf::Vertex(p3, color));
+
+	// second triangle to form a rectangle
+	cellVertexArray.append(sf::Vertex(p2, color));
+	cellVertexArray.append(sf::Vertex(p3, color));
+	cellVertexArray.append(sf::Vertex(p4, color));
+}
+
 void initInputDialog(InputDialog& inputDialog)
 {
 	const float PADDING = 8.0f;
@@ -598,35 +616,55 @@ void onButtonClicked(const sf::Vector2f& mousePosition, std::vector<Button>& but
 			{
 				if (button.buttonName == "Find Path")
 				{
-					pathFinder.startCell = selectedPathFindingCell[0];
-					pathFinder.endCell = selectedPathFindingCell[1];
-					pathFinder.status = findShortPathInstantly(mazeObj, path, selectedPathFindingCell[0], selectedPathFindingCell[1]);
+					if (pathFinder.status.statusType != PROCESSING)
+					{
+						double delay = 0.0f;
+						if (!pathFindTextInputList[4].inputString.empty())
+						{
+							delay = std::stod(pathFindTextInputList[4].inputString);
+						}
+
+						pathFinder.startCell = selectedPathFindingCell[0];
+						pathFinder.endCell = selectedPathFindingCell[1];
+						if (delay <= 0)
+						{
+							pathFinder.status = findShortPathInstantly(mazeObj, path, selectedPathFindingCell[0], selectedPathFindingCell[1]);
+						}
+
+						else
+						{
+							pathFinder.delay = delay;
+							startFindShortPath(mazeObj, pathFinder, path);
+						}
+					}
 				}
 
 				else if (button.buttonName == "Save")
 				{
-					// TODO: check path finding status first
-					currentDialog = SAVE_PATH;
+					if (pathFinder.status.statusType == SUCCESSFUL)
+						currentDialog = SAVE_PATH;
 				}
 
 				else if (button.buttonName == "Load")
 				{
-					// TODO: check path finding status first
-					currentDialog = LOAD_PATH;
+					if (pathFinder.status.statusType != PROCESSING)
+						currentDialog = LOAD_PATH;
 				}
 
 				else if (button.buttonName == "Maze Generator")
 				{
-					// TODO: check path finding status first
-					// Change Page to Maze Generator
-					currentDialog = NONE;
-					currentPage = MAZE_GEN;
-					selectedPathFindingCell[0] = { -1, -1 };
-					selectedPathFindingCell[1] = { -1, -1 };
-					pathFinder.status.statusType = IDLE;
-					pathFinder.status.statusMessage = "";
-					pathFinder.startCell = selectedPathFindingCell[0];
-					pathFinder.endCell = selectedPathFindingCell[1];
+					if (pathFinder.status.statusType != PROCESSING)
+					{
+						// Change Page to Maze Generator
+						currentDialog = NONE;
+						currentPage = MAZE_GEN;
+						selectedPathFindingCell[0] = { -1, -1 };
+						selectedPathFindingCell[1] = { -1, -1 };
+						pathFinder.status.statusType = IDLE;
+						pathFinder.status.statusMessage = "";
+						pathFinder.startCell = selectedPathFindingCell[0];
+						pathFinder.endCell = selectedPathFindingCell[1];
+					}
 				}
 			}
 
@@ -1032,7 +1070,7 @@ void initPathFindingWindow()
 
 void updatePathFindingWindow()
 {
-
+	updateFindShortPath(mazeObj, pathFinder, path);
 }
 
 void pathFindingEventHandling(const sf::Vector2f& mousePosition, const std::optional<sf::Event>& event)
@@ -1202,6 +1240,46 @@ void drawMazePath(sf::RenderWindow& window)
 	window.draw(cellVertexArray);
 }
 
+void drawPathFindingProcess(sf::RenderWindow& window)
+{
+	if (pathFinder.status.statusType != PROCESSING)
+		return;
+
+	int m = mazeObj.maze_width;
+	int n = mazeObj.maze_height;
+
+	if (m <= 0 || n <= 0)
+	{
+		std::cerr << "Maze Width or Height is less than or equals to 0, unable to draw maze path." << std::endl;
+		return;
+	}
+
+	float cellWidth = mazeSize.x / m;
+	float cellHeight = mazeSize.y / n;
+
+	sf::VertexArray cellVertexArray(sf::PrimitiveType::Triangles);
+
+	// explored
+	for (CellPos exploredCell : pathFinder.exploredPos)
+	{
+		drawRectAtCell(cellVertexArray, mazePos, cellWidth, cellHeight, exploredCell, sf::Color::Cyan);
+	}
+
+	// queue
+	std::queue<CellPos> copyQ = pathFinder.q; // make a copy of a queue
+	while (!copyQ.empty())
+	{
+		drawRectAtCell(cellVertexArray, mazePos, cellWidth, cellHeight, copyQ.front(), sf::Color::Yellow);
+		copyQ.pop();
+	}
+
+	// front
+	if (!pathFinder.q.empty())
+		drawRectAtCell(cellVertexArray, mazePos, cellWidth, cellHeight, pathFinder.q.front(), sf::Color::Red);
+
+	window.draw(cellVertexArray);
+}
+
 void drawPathFindingWindow(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
 {
 	// Path Finding Title
@@ -1265,6 +1343,7 @@ void drawPathFindingWindow(sf::RenderWindow& window, const sf::Vector2f& mousePo
 	pathFindStatText.setPosition({ statTextXPos, 500.0f });
 	window.draw(pathFindStatText);
 	
+	drawPathFindingProcess(window);
 	drawMazePath(window);
 
 	// draw cell a and cell b points
