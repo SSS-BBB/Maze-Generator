@@ -63,3 +63,15 @@ If you do input delay the program will start to find the shortest path from Cell
 - Cyan represents explored cells
 - Red represents a cell in front of the queue
 - Yellow represents cells in the queue
+
+# Key Knowledges
+
+- Radomized Depth-First Search (DFS)
+- Breadth-First Search (BFS)
+- SFML
+
+# Sources
+
+Maze generation algorithm: https://en.wikipedia.org/wiki/Maze_generation_algorithm
+
+Breadth-first search: https://en.wikipedia.org/wiki/Breadth-first_search
