@@ -5,7 +5,6 @@
 struct Path
 {
 	std::vector<std::vector<CellPos>> parents; // parent[y][x] is the parent of cell (y, x)
-	int currentDistance = 0;
 };
 
 // For Visualization Purpose

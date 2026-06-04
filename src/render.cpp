@@ -1355,8 +1355,11 @@ void init(sf::Font windowFont)
 
 	initPathFindingWindow();
 
+	// Debug
+	/*
 	loadMaze(mazeObj, "TestMaze");
 	currentPage = PATH_FIND;
+	*/
 }
 
 void update()
@@ -1417,7 +1420,8 @@ void draw(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
 	// both in maze generator and path finder page
 	drawMazeWall(window, mazeSize, mazePos);
 
-	// Mouse Position Text
+	// Mouse Position Text For Debug
+	/*
 	sf::Text mousePosText(font);
 	mousePosText.setString("Mouse Position: (" +
 		std::to_string(mousePosition.x) + "," +
@@ -1426,6 +1430,7 @@ void draw(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
 	mousePosText.setFillColor(sf::Color::Black);
 	mousePosText.setPosition({ 16.0, 680.0 });
 	window.draw(mousePosText);
+	*/
 
 	if (currentPage == MAZE_GEN)
 	{
