@@ -12,7 +12,7 @@ enum Page
 
 enum Dialog
 {
-	NONE, SAVE_MAZE, LOAD_MAZE, SAVE_PATH, LOAD_PATH
+	NONE, SAVE_MAZE, LOAD_MAZE
 };
 
 struct TextInput
@@ -639,18 +639,6 @@ void onButtonClicked(const sf::Vector2f& mousePosition, std::vector<Button>& but
 					}
 				}
 
-				else if (button.buttonName == "Save")
-				{
-					if (pathFinder.status.statusType == SUCCESSFUL)
-						currentDialog = SAVE_PATH;
-				}
-
-				else if (button.buttonName == "Load")
-				{
-					if (pathFinder.status.statusType != PROCESSING)
-						currentDialog = LOAD_PATH;
-				}
-
 				else if (button.buttonName == "Maze Generator")
 				{
 					if (pathFinder.status.statusType != PROCESSING)
@@ -983,25 +971,6 @@ CellPos getMazePosFromWindowPos(sf::Vector2f windowPos)
 	return mazePos;
 }
 
-void initPathFindDialog()
-{
-	savePathDialog.title = "Save Path";
-	savePathDialog.descString = "Enter file name to save the path";
-	savePathDialog.okButton.buttonName = "Save";
-	savePathDialog.cancelButton.buttonName = "Cancel";
-	savePathDialog.textInput.size = { 300.0f, 40.0f };
-	savePathDialog.dialogType = SAVE_PATH;
-	initInputDialog(savePathDialog);
-
-	loadPathDialog.title = "Load Path";
-	loadPathDialog.descString = "Enter file name to load the path";
-	loadPathDialog.okButton.buttonName = "Load";
-	loadPathDialog.cancelButton.buttonName = "Cancel";
-	loadPathDialog.textInput.size = { 300.0f, 40.0f };
-	loadPathDialog.dialogType = LOAD_PATH;
-	initInputDialog(loadPathDialog);
-}
-
 void initPathFindingWindow()
 {
 	// Text Input
@@ -1054,18 +1023,6 @@ void initPathFindingWindow()
 	mazeGenButton.size.x = 175.0f;
 	mazeGenButton.position = { 879.0f, 560.0f };
 	pathFindButtonList.emplace_back(mazeGenButton);
-
-	Button saveButton;
-	saveButton.buttonName = "Save";
-	saveButton.buttonPage = PATH_FIND;
-	saveButton.position = { 155.0f, 590.0f };
-	pathFindButtonList.emplace_back(saveButton);
-
-	Button loadButton;
-	loadButton.buttonName = "Load";
-	loadButton.buttonPage = PATH_FIND;
-	loadButton.position = { 155.0f + 200.0f, 590.0f };
-	pathFindButtonList.emplace_back(loadButton);
 }
 
 void updatePathFindingWindow()
@@ -1397,7 +1354,6 @@ void init(sf::Font windowFont)
 	initGeneratorDialog();
 
 	initPathFindingWindow();
-	initPathFindDialog();
 
 	loadMaze(mazeObj, "TestMaze");
 	currentPage = PATH_FIND;
@@ -1445,17 +1401,6 @@ void eventHandling(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
 				}
 			}
 
-			else if (currentPage == PATH_FIND)
-			{
-				if (currentDialog == SAVE_PATH)
-				{
-					inputDialogEventHandling(mousePosition, event, savePathDialog);
-				}
-				else if (currentDialog == LOAD_PATH)
-				{
-					inputDialogEventHandling(mousePosition, event, loadPathDialog);
-				}
-			}
 		}
 	}
 }
@@ -1488,13 +1433,5 @@ void draw(sf::RenderWindow& window, const sf::Vector2f& mousePosition)
 			drawInputDialog(window, saveMazeDialog);
 		else if (currentDialog == LOAD_MAZE)
 			drawInputDialog(window, loadMazeDialog);
-	}
-
-	else if (currentPage == PATH_FIND)
-	{
-		if (currentDialog == SAVE_PATH)
-			drawInputDialog(window, savePathDialog);
-		else if (currentDialog == LOAD_PATH)
-			drawInputDialog(window, loadPathDialog);
 	}
 }
